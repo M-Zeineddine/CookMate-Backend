@@ -3,11 +3,30 @@
     public class UserPostsModel
     {
         public int Id { get; set; }
+        public byte PostType { get; set; }
+        public RecipeDto Recipe { get; set; }
+        public MediaDto Media { get; set; }
+    }
+
+    public class RecipeDto
+    {
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public int Media_id { get; set; }
-        public int PreparationTime { get; set; }
-        public byte PostType { get; set; }
+        public string PreparationTime { get; set; }
+        public string Media { get; set; }
+
     }
+
+    public class MediaDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public byte MediaType { get; set; }
+        public byte[] MediaData { get; set; }
+    }
+
+
 
 }

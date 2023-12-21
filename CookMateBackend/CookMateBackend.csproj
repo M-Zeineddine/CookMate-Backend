@@ -24,4 +24,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="uploads\media\" />
+    <Folder Include="uploads\recipes\" />
+  </ItemGroup>
+
 </Project>

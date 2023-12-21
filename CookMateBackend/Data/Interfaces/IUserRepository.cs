@@ -6,8 +6,6 @@ namespace CookMateBackend.Data.Interfaces
 {
     public interface IUserRepository
     {
-        Task<ResponseResult<UserDetailsModel>> GetUserDetailsById(int userId);
-        Task<ResponseResult<List<UserPostsModel>>> GetUserPosts(int userId, int postType);
-        Task<ResponseResult<List<UserMediasModel>>> GetUserMedia(int userId);
+        Task<ResponseResult<UserDetailsModel>> GetUserById(int userId);
     }
 }

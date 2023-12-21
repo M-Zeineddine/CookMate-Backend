@@ -58,7 +58,7 @@ namespace CookMateBackend.Data.Repositories
 
 
 
-        public async Task<ResponseResult<UserDetailsModel>> GetUserDetailsById(int userid)
+        public async Task<ResponseResult<UserDetailsModel>> GetUserById(int userid)
         {
             var useridParameter = new SqlParameter("Userid", userid);
             var res = await _CookMateContext.UserDetailsModel.FromSqlRaw($"exec [dbo].[GetUserDetailsById] @Userid", useridParameter).ToListAsync();
@@ -72,46 +72,9 @@ namespace CookMateBackend.Data.Repositories
             return result;
         }
 
-        public async Task<ResponseResult<List<UserPostsModel>>> GetUserPosts(int userId, int postType)
-        {
-            try
-            {
-                var userIdParameter = new SqlParameter("@UserId", userId);
-                var postTypeparameter = new SqlParameter("@PostType", postType);
 
-                var recipes = await _CookMateContext.UserPostsModel
-                    .FromSqlRaw("EXEC GetUserPosts @UserId, @PostType", userIdParameter, postTypeparameter)
-                    .ToListAsync();
 
-                var result = new ResponseResult<List<UserPostsModel>>();
-
-                if (recipes != null && recipes.Any())
-                {
-                    result.IsSuccess = true;
-                    result.Message = "User recipes retrieved successfully.";
-                    result.Result = recipes;
-                }
-                else
-                {
-                    result.IsSuccess = false;
-                    result.Message = "User has no recipes.";
-                    result.Result = new List<UserPostsModel>();
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                return new ResponseResult<List<UserPostsModel>>
-                {
-                    IsSuccess = false,
-                    Message = $"An error occurred: {ex.Message}",
-                    Result = null
-                };
-            }
-        }
-
-        public async Task<ResponseResult<List<UserMediasModel>>> GetUserMedia(int userId)
+        /*public async Task<ResponseResult<List<UserMediasModel>>> GetUserMedia(int userId)
         {
             try
             {
@@ -145,7 +108,7 @@ namespace CookMateBackend.Data.Repositories
                     Result = null
                 };
             }
-        }
+        }*/
 
     }
 }

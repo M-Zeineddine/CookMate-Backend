@@ -14,4 +14,6 @@ public partial class TagsList
     public virtual ICollection<RecipeTag> RecipeTags { get; set; } = new List<RecipeTag>();
 
     public virtual TagCategory TagCategory { get; set; } = null!;
+
+    public virtual ICollection<UserPreferencesTag> UserPreferencesTags { get; set; } = new List<UserPreferencesTag>();
 }

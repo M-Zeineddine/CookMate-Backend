@@ -22,7 +22,11 @@ public partial class CookMateContext : DbContext
 
     public virtual DbSet<Ingredient> Ingredients { get; set; }
 
-    public virtual DbSet<Medium> Media { get; set; }
+    public virtual DbSet<IngredientSubstitute> IngredientSubstitutes { get; set; }
+
+    public virtual DbSet<InteractionHistory> InteractionHistories { get; set; }
+
+    public virtual DbSet<Media> Media { get; set; }
 
     public virtual DbSet<Post> Posts { get; set; }
 
@@ -30,11 +34,19 @@ public partial class CookMateContext : DbContext
 
     public virtual DbSet<Recipe> Recipes { get; set; }
 
+    public virtual DbSet<RecipeDislike> RecipeDislikes { get; set; }
+
     public virtual DbSet<RecipeIngredient> RecipeIngredients { get; set; }
+
+    public virtual DbSet<RecipeLike> RecipeLikes { get; set; }
 
     public virtual DbSet<RecipeTag> RecipeTags { get; set; }
 
+    public virtual DbSet<RecipeView> RecipeViews { get; set; }
+
     public virtual DbSet<Review> Reviews { get; set; }
+
+    public virtual DbSet<SearchHistory> SearchHistories { get; set; }
 
     public virtual DbSet<TagCategory> TagCategories { get; set; }
 
@@ -42,12 +54,14 @@ public partial class CookMateContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<UserPreferencesTag> UserPreferencesTags { get; set; }
 
 
     //OutputModels
     public virtual DbSet<UserDetailsModel> UserDetailsModel { get; set; }
     public virtual DbSet<UserPostsModel> UserPostsModel { get; set; }
-    public virtual DbSet<UserMediasModel> UserMediasModel { get; set; }
+    /*public virtual DbSet<UserMediasModel> UserMediasModel { get; set; }*/
+    public virtual DbSet<MediaDto> MediaModels { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -117,21 +131,54 @@ public partial class CookMateContext : DbContext
                 .HasColumnName("name");
         });
 
-        modelBuilder.Entity<Medium>(entity =>
+        modelBuilder.Entity<IngredientSubstitute>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ingredient_substitutes");
+
+            entity.Property(e => e.IngredientId).HasColumnName("ingredient_id");
+            entity.Property(e => e.SubstituteId).HasColumnName("substitute_id");
+
+            entity.HasOne(d => d.Ingredient).WithMany()
+                .HasForeignKey(d => d.IngredientId)
+                .HasConstraintName("FK__ingredien__ingre__72910220");
+
+            entity.HasOne(d => d.Substitute).WithMany()
+                .HasForeignKey(d => d.SubstituteId)
+                .HasConstraintName("FK__ingredien__subst__73852659");
+        });
+
+        modelBuilder.Entity<InteractionHistory>(entity =>
+        {
+            entity.HasKey(e => e.InteractionId).HasName("PK__interact__605F8FE61CB80C0F");
+
+            entity.ToTable("interaction_history");
+
+            entity.Property(e => e.InteractionId).HasColumnName("interaction_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InteractionHistories)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK__interacti__user___3C34F16F");
+        });
+
+        modelBuilder.Entity<Media>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_media_id");
 
             entity.ToTable("media");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Descirption)
+            entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .IsUnicode(false)
-                .HasColumnName("descirption");
-            entity.Property(e => e.MediaData)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("media_data");
+                .HasColumnName("description");
+            entity.Property(e => e.MediaData).HasColumnName("media_data");
             entity.Property(e => e.MediaType).HasColumnName("media_type");
             entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
             entity.Property(e => e.Title)
@@ -224,6 +271,29 @@ public partial class CookMateContext : DbContext
             entity.Property(e => e.PreperationTime).HasColumnName("preperation_time");
         });
 
+        modelBuilder.Entity<RecipeDislike>(entity =>
+        {
+            entity.HasKey(e => e.DislikeId).HasName("PK__recipe_d__63D9DC376F031713");
+
+            entity.ToTable("recipe_dislikes");
+
+            entity.Property(e => e.DislikeId).HasColumnName("dislike_id");
+            entity.Property(e => e.DislikedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("disliked_at");
+            entity.Property(e => e.InteractionId).HasColumnName("interaction_id");
+            entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
+
+            entity.HasOne(d => d.Interaction).WithMany(p => p.RecipeDislikes)
+                .HasForeignKey(d => d.InteractionId)
+                .HasConstraintName("FK__recipe_di__inter__498EEC8D");
+
+            entity.HasOne(d => d.Recipe).WithMany(p => p.RecipeDislikes)
+                .HasForeignKey(d => d.RecipeId)
+                .HasConstraintName("FK__recipe_di__recip__4A8310C6");
+        });
+
         modelBuilder.Entity<RecipeIngredient>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_recipe_ingredients_id");
@@ -250,6 +320,29 @@ public partial class CookMateContext : DbContext
                 .HasConstraintName("FK_recipe_ingredients_recipe_id");
         });
 
+        modelBuilder.Entity<RecipeLike>(entity =>
+        {
+            entity.HasKey(e => e.LikeId).HasName("PK__recipe_l__992C79306A831DE4");
+
+            entity.ToTable("recipe_likes");
+
+            entity.Property(e => e.LikeId).HasColumnName("like_id");
+            entity.Property(e => e.InteractionId).HasColumnName("interaction_id");
+            entity.Property(e => e.LikedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("liked_at");
+            entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
+
+            entity.HasOne(d => d.Interaction).WithMany(p => p.RecipeLikes)
+                .HasForeignKey(d => d.InteractionId)
+                .HasConstraintName("FK__recipe_li__inter__44CA3770");
+
+            entity.HasOne(d => d.Recipe).WithMany(p => p.RecipeLikes)
+                .HasForeignKey(d => d.RecipeId)
+                .HasConstraintName("FK__recipe_li__recip__45BE5BA9");
+        });
+
         modelBuilder.Entity<RecipeTag>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_recipe_tags_id");
@@ -271,6 +364,29 @@ public partial class CookMateContext : DbContext
                 .HasForeignKey(d => d.TagListId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_recipe_tags_tag_list_id");
+        });
+
+        modelBuilder.Entity<RecipeView>(entity =>
+        {
+            entity.HasKey(e => e.ViewId).HasName("PK__recipe_v__B5A34EE2D647D1E6");
+
+            entity.ToTable("recipe_views");
+
+            entity.Property(e => e.ViewId).HasColumnName("view_id");
+            entity.Property(e => e.InteractionId).HasColumnName("interaction_id");
+            entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
+            entity.Property(e => e.ViewedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("viewed_at");
+
+            entity.HasOne(d => d.Interaction).WithMany(p => p.RecipeViews)
+                .HasForeignKey(d => d.InteractionId)
+                .HasConstraintName("FK__recipe_vi__inter__40058253");
+
+            entity.HasOne(d => d.Recipe).WithMany(p => p.RecipeViews)
+                .HasForeignKey(d => d.RecipeId)
+                .HasConstraintName("FK__recipe_vi__recip__40F9A68C");
         });
 
         modelBuilder.Entity<Review>(entity =>
@@ -301,6 +417,25 @@ public partial class CookMateContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_review_user_id");
+        });
+
+        modelBuilder.Entity<SearchHistory>(entity =>
+        {
+            entity.HasKey(e => e.SearchId).HasName("PK__search_h__B302268D21D8F7E3");
+
+            entity.ToTable("search_history");
+
+            entity.Property(e => e.SearchId).HasColumnName("search_id");
+            entity.Property(e => e.SearchTerm).HasColumnName("search_term");
+            entity.Property(e => e.SearchedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("searched_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SearchHistories)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK__search_hi__user___4E53A1AA");
         });
 
         modelBuilder.Entity<TagCategory>(entity =>
@@ -357,7 +492,7 @@ public partial class CookMateContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("email");
             entity.Property(e => e.Password)
-                .HasMaxLength(50)
+                .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("password");
             entity.Property(e => e.ProfilePic)
@@ -369,6 +504,25 @@ public partial class CookMateContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("username");
+        });
+
+        modelBuilder.Entity<UserPreferencesTag>(entity =>
+        {
+            entity.HasKey(e => e.PreferenceTagId).HasName("PK__user_pre__ABA8BEFDDC458365");
+
+            entity.ToTable("user_preferences_tags");
+
+            entity.Property(e => e.PreferenceTagId).HasColumnName("preference_tag_id");
+            entity.Property(e => e.TagId).HasColumnName("tag_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.UserPreferencesTags)
+                .HasForeignKey(d => d.TagId)
+                .HasConstraintName("FK__user_pref__tag_i__531856C7");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserPreferencesTags)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK__user_pref__user___5224328E");
         });
 
         OnModelCreatingPartial(modelBuilder);
