@@ -11,13 +11,13 @@ public partial class Post
 
     public int UserId { get; set; }
 
-    public int? MediaId { get; set; }
-
     public int? RecipeId { get; set; }
+
+    public int? MediaId { get; set; }
 
     public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
 
-    public virtual Medium? Media { get; set; }
+    public virtual Media? Media { get; set; }
 
     public virtual Recipe? Recipe { get; set; }
 

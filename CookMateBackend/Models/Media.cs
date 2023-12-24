@@ -9,15 +9,13 @@ public partial class Media
 
     public string Title { get; set; } = null!;
 
-    public string Descirption { get; set; } = null!;
+    public string Description { get; set; } = null!;
 
     public byte MediaType { get; set; }
 
     public string MediaData { get; set; } = null!;
 
     public int? RecipeId { get; set; }
-
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
-
     public virtual Recipe? Recipe { get; set; }
 }

@@ -25,7 +25,7 @@ namespace CookMateBackend.Controllers
         {
             try
             {
-                return await _userRepository.GetUserDetailsById(userId);
+                return await _userRepository.GetUserById(userId);
 
                 /*if (userDetailsResult.IsSuccess == true)
                 {
@@ -48,35 +48,9 @@ namespace CookMateBackend.Controllers
         }
 
 
-        [HttpGet]
-        [Route("getUserPosts")]
-        public async Task<ActionResult<ResponseResult<List<UserPostsModel>>>> GetUserPosts(int userId, int postType)
-        {
-            try
-            {
-                var recipes = await _userRepository.GetUserPosts(userId, postType);
+        
 
-                if (recipes.IsSuccess == true)
-                {
-                    return Ok(recipes);
-                }
-                else
-                {
-                    return NotFound(recipes);
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ResponseResult<List<UserPostsModel>>
-                {
-                    IsSuccess = false,
-                    Message = $"An error occurred: {ex.Message}",
-                    Result = null
-                });
-            }
-        }
-
-        [HttpGet("{userId}/media")]
+        /*[HttpGet("{userId}/media")]
         public async Task<ActionResult<ResponseResult<List<UserMediasModel>>>> GetUserMedia(int userId)
         {
             try
@@ -101,7 +75,7 @@ namespace CookMateBackend.Controllers
                     Result = null
                 });
             }
-        }
+        }*/
 
     }
 }
