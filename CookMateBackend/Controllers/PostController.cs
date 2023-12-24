@@ -65,24 +65,13 @@ namespace CookMateBackend.Controllers
             _environment = environment;
         }
 
-        private byte[] ConvertToBytes(IFormFile mediaFile)
-        {
-            if (mediaFile == null) return null;
-
-            using (var memoryStream = new MemoryStream())
-            {
-                mediaFile.CopyTo(memoryStream);
-                return memoryStream.ToArray();
-            }
-        }
-
         [HttpGet]
         [Route("getUserPostsList")]
-        public async Task<ActionResult<ResponseResult<List<UserPostsModel>>>> GetPosts(int userId, int postType)
+        public async Task<ActionResult<ResponseResult<List<UserPostsModel>>>> GetPosts(int userId)
         {
             try
             {
-                var recipes = await _postRepository.GetPostsByUserId(userId, postType);
+                var recipes = await _postRepository.GetPostsByUserId(userId);
 
                 if (recipes.IsSuccess == true)
                 {
@@ -190,118 +179,32 @@ namespace CookMateBackend.Controllers
 
 
         [HttpPost]
-        public async Task<ResponseResult<Post>> CreatePost([FromForm] CreatePostModel model)
+        public async Task<ActionResult<ResponseResult<Post>>> CreatePost([FromForm] CreatePostModel model)
         {
-            var result = new ResponseResult<Post>();
-
-            // Assuming _context is your database context
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            try
             {
-                try
+                var result = await _postRepository.CreatePost(model);
+                if ((bool)result.IsSuccess)
                 {
-                    // Handle file upload
-                    string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-                    string filePath = null;
-
-                    if ((model.Type == 1 && model.RecipeMedia != null) || (model.Type == 2 && model.MediaData != null))
-                    {
-                        IFormFile file = model.Type == 1 ? model.RecipeMedia : model.MediaData;
-                        string folderPath = model.Type == 1 ? Path.Combine(uploadsFolder, "recipes") : Path.Combine(uploadsFolder, "media");
-                        Directory.CreateDirectory(folderPath); // Ensure the directory exists
-
-                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                        filePath = Path.Combine(folderPath, uniqueFileName);
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-                    }
-
-                    // Create and save the new post with media
-                    Post newPost = new Post
-                    {
-                        UserId = model.UserId,
-                        Type = model.Type
-                        // Populate other fields as necessary
-                    };
-
-                    if (model.Type == 1)
-                    {
-                        // Save recipe information
-                        Recipe newRecipe = new Recipe
-                        {
-                            Name = model.RecipeName,
-                            Description = model.RecipeDescription,
-                            PreperationTime = model.PreparationTime.HasValue ? model.PreparationTime.Value.ToString() : null,
-                            Media = filePath // Assuming this is the correct property for a Recipe entity
-                        };
-                        _context.Recipes.Add(newRecipe);
-                        await _context.SaveChangesAsync();
-
-                        // Assuming you want to link the RecipeId to the Post
-                        newPost.RecipeId = newRecipe.Id;
-                    }
-                    else if (model.Type == 2)
-                    {
-                        // Save media information
-                        Media newMedia = new Media
-                        {
-                            Title = model.MediaTitle,
-                            Description = model.MediaDescription,
-                            MediaType = (byte)model.MediaType,
-                            MediaData = filePath
-                        };
-                        _context.Media.Add(newMedia);
-                        await _context.SaveChangesAsync();
-
-                        // Assuming you want to link the MediaId to the Post
-                        newPost.MediaId = newMedia.Id;
-                    }
-
-                    _context.Posts.Add(newPost);
-                    await _context.SaveChangesAsync();
-
-                    await transaction.CommitAsync();
-
-                    result.IsSuccess = true;
-                    result.Result = newPost;
+                    return Ok(result);
                 }
-                catch (Exception ex)
+                else
                 {
-                    await transaction.RollbackAsync();
-                    result.IsSuccess = false;
-                    result.Message = ex.Message;
+                    return BadRequest(result);
                 }
             }
-
-            return result;
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ResponseResult<Post>
+                {
+                    IsSuccess = false,
+                    Message = $"An error occurred: {ex.Message}",
+                    Result = null
+                });
+            }
         }
 
 
-
-        private async Task<string> SaveFileAsync(IFormFile file, string uploadsFolderPath)
-        {
-            if (file == null || file.Length == 0)
-            {
-                throw new ArgumentException("File is null or empty.", nameof(file));
-            }
-
-            if (string.IsNullOrEmpty(uploadsFolderPath))
-            {
-                throw new ArgumentException("Uploads folder path cannot be null or empty.", nameof(uploadsFolderPath));
-            }
-
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
-            string filePath = Path.Combine(uploadsFolderPath, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            return filePath; // Or return a relative path or URL as needed
-        }
 
 
 

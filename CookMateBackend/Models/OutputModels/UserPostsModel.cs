@@ -24,7 +24,7 @@
         public string Title { get; set; }
         public string Description { get; set; }
         public byte MediaType { get; set; }
-        public byte[] MediaData { get; set; }
+        public string MediaData { get; set; }
     }
 
 
