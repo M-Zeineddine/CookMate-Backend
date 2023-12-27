@@ -17,6 +17,7 @@ namespace CookMateBackend.Data.Repositories
             _CookMateContext = cookMateContext;
         }
 
+        public string baseUrl = "http://192.168.1.14/";
         public async Task<ResponseResult<List<UserPostsModel>>> GetPostsByUserId(int userId)
         {
             var result = new ResponseResult<List<UserPostsModel>>();
@@ -24,8 +25,7 @@ namespace CookMateBackend.Data.Repositories
             try
             {
                 // Define the base URL for media access based on your server's address
-                string baseUrl = "http://192.168.1.110:5000/";
-
+                
                 // Specify the paths for recipes and general media if they are different
                 string recipeMediaPath = "uploads/recipes/";
                 string generalMediaPath = "uploads/media/";
@@ -164,5 +164,56 @@ namespace CookMateBackend.Data.Repositories
             return result;
         }
 
+        public async Task<RecipeDetailsModel> GetRecipeDetailsByIdAsync(int recipeId)
+        {
+            // Define the base URL for media access based on your server's address
+            string recipeMediaPath = "uploads/recipes/";
+
+            var recipe = await _CookMateContext.Recipes
+                .Where(r => r.Id == recipeId)
+                .Select(r => new RecipeDetailsModel
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description,
+                    PreparationTime = r.PreperationTime,
+                    Media = !string.IsNullOrEmpty(r.Media) ? $"{baseUrl}{recipeMediaPath}{r.Media}" : null,
+                    Procedures = r.Procedures.Select(p => new Procedure
+                    {
+                        Id = p.Id,
+                        Title = p.Title,
+                        Description = p.Description,
+                        Media = !string.IsNullOrEmpty(p.Media) ? $"{baseUrl}{recipeMediaPath}{p.Media}" : null,
+                        MediaType = p.MediaType,
+                        Time = p.Time,
+                        Step = p.Step,
+                        RecipeId = p.RecipeId
+                    }).ToList(),
+                    Ingredients = r.RecipeIngredients.Select(ri => new IngredientDto
+                    {
+                        Id = ri.Id,
+                        Name = ri.IngredientList.Name, // Fetching the name from the related Ingredient entity
+                        Weight = ri.Weight
+                        // Map other fields as needed
+                    }).ToList(),
+                    User = r.Posts
+                        .Where(p => p.Type == 1 && p.RecipeId == r.Id)
+                        .Select(p => new UserDto
+                        {
+                            Id = p.User.Id,
+                            Username = p.User.Username
+                            // Map additional user properties as needed.
+                        }).FirstOrDefault()
+                }).FirstOrDefaultAsync();
+
+            return recipe;
+        }
+
+
     }
+
+
+
+
+
 }

@@ -125,6 +125,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.UseHttpsRedirection();
 
 string uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");

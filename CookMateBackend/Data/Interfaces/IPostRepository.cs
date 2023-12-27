@@ -9,6 +9,7 @@ namespace CookMateBackend.Data.Interfaces
     {
         Task<ResponseResult<List<UserPostsModel>>> GetPostsByUserId(int userId);
         Task<ResponseResult<Post>> CreatePost(CreatePostModel model);
+        Task<RecipeDetailsModel> GetRecipeDetailsByIdAsync(int recipeId);
 
     }
 }

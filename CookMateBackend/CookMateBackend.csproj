@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <Folder Include="uploads\media\" />
-    <Folder Include="uploads\recipes\" />
   </ItemGroup>
 
 </Project>

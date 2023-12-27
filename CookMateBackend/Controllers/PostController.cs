@@ -205,9 +205,28 @@ namespace CookMateBackend.Controllers
         }
 
 
+        [HttpGet]
+        [Route("getRecipeDetails")]
+        public async Task<ActionResult<ResponseResult<RecipeDetailsModel>>> GetRecipeDetails(int id)
+        {
+            var recipeDetails = await _postRepository.GetRecipeDetailsByIdAsync(id);
+            if (recipeDetails == null)
+            {
+                return NotFound(new ResponseResult<RecipeDetailsModel>
+                {
+                    IsSuccess = false,
+                    Message = "Recipe not found.",
+                    Result = null
+                });
+            }
 
-
-
+            return Ok(new ResponseResult<RecipeDetailsModel>
+            {
+                IsSuccess = true,
+                Message = "Recipe details retrieved successfully.",
+                Result = recipeDetails
+            });
+        }
 
 
 
