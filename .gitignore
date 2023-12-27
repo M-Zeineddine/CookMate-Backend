@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/CookMateBackend/Migrations
+/CookMateBackend/Properties/ServiceDependencies
+/CookMateBackend/Properties/serviceDependencies.CookMateBackendAPI - Web Deploy.json
+/CookMateBackend/Properties/serviceDependencies.json
