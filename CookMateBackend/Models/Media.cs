@@ -7,13 +7,15 @@ public partial class Media
 {
     public int Id { get; set; }
 
-    public string Title { get; set; } = null!;
+    public string? Title { get; set; }
 
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
-    public byte MediaType { get; set; }
+    public string? MediaData { get; set; }
 
-    public string MediaData { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+
+    public int Likes { get; set; }
 
     public int? RecipeId { get; set; }
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();

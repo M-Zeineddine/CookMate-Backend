@@ -4,6 +4,7 @@ using CookMateBackend.Models;
 using CookMateBackend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.FileProviders;
@@ -28,9 +29,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<CookMateContext>(options =>
+/*builder.Services.AddDbContext<CookMateContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
-
+*/
 
 
 builder.Services.AddDbContext<CookMateContext>(options =>
@@ -58,7 +59,14 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
+builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
+builder.Services.AddScoped<IProcedureRepository, ProcedureRepository>();
 
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    // Disables automatic 400 response
+    options.SuppressModelStateInvalidFilter = true;
+});
 
 //JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]);
@@ -119,11 +127,11 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+/*if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+}*/
 
 app.UseSwagger();
 app.UseSwaggerUI();

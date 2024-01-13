@@ -21,5 +21,5 @@ public partial class Post
 
     public virtual Recipe? Recipe { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    public virtual User? User { get; set; }
 }

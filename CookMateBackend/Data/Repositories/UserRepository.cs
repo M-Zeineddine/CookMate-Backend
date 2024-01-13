@@ -73,40 +73,95 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
+        public async Task<List<SearchHistory>> GetSearchHistoryByUserIdAsync(int userId)
+        {
+            return await _CookMateContext.SearchHistories
+                .Where(sh => sh.UserId == userId)
+                .OrderByDescending(sh => sh.SearchedAt)
+                .ToListAsync();
+        }
 
-        /*public async Task<ResponseResult<List<UserMediasModel>>> GetUserMedia(int userId)
+
+        /*public async Task<bool> SaveSearchTermAsync(string userId, string searchTerm)
         {
             try
             {
-                var media = await _CookMateContext.UserMediasModel
-                    .FromSqlRaw("EXEC GetUserMedia @UserId", new SqlParameter("@UserId", userId))
-                    .ToListAsync();
-
-                var result = new ResponseResult<List<UserMediasModel>>();
-
-                if (media != null && media.Any())
+                // Create a new search history object
+                var searchHistory = new SearchHistory
                 {
-                    result.IsSuccess = true;
-                    result.Message = "User media retrieved successfully.";
-                    result.Result = media;
-                }
-                else
-                {
-                    result.IsSuccess = false;
-                    result.Message = "User has no media.";
-                    result.Result = new List<UserMediasModel>();
-                }
+                    UserId = userId,
+                    SearchTerm = searchTerm,
+                    SearchedAt = DateTime.UtcNow // Assuming you want to save the search time in UTC
+                };
 
-                return result;
+                // Add the new search history to the context
+                await _CookMateContext.SearchHistories.AddAsync(searchHistory);
+
+                // Save the changes back to the database
+                await _CookMateContext.SaveChangesAsync();
+
+                return true;
             }
             catch (Exception ex)
             {
-                return new ResponseResult<List<UserMediasModel>>
+                // Log the exception and handle it appropriately
+                // For example:
+                // _logger.LogError("An error occurred when saving the search term: {Exception}", ex);
+                return false;
+            }
+        }*/
+
+
+        /*public async Task<ResponseResult<List<User>>> SearchUsersAsync(string searchString)
+        {
+            var users = await _CookMateContext.Users
+                .Where(u => u.Username.Contains(searchString) || u.Email.Contains(searchString))
+                .ToListAsync();
+
+            return new ResponseResult<List<User>>
+            {
+                IsSuccess = true,
+                Message = "Users retrieved successfully.",
+                Result = users
+            };
+        }
+
+        public async Task<ResponseResult<List<Recipe>>> SearchRecipesAsync(string searchString, int? preparationTime)
+        {
+            var query = _CookMateContext.Recipes.AsQueryable();
+            if (preparationTime.HasValue)
+            {
+                query = query.Where(r => Int32.Parse(r.PreperationTime) <= preparationTime.Value);
+            }
+            query = query.Where(r => r.Name.Contains(searchString) || r.Description.Contains(searchString));
+
+            var recipes = await query.ToListAsync();
+            return new ResponseResult<List<Recipe>>
+            {
+                IsSuccess = true,
+                Message = "Recipes retrieved successfully.",
+                Result = recipes
+            };
+        }
+
+        public async Task<bool> SaveSearchTermAsync(string userId, string searchTerm)
+        {
+            try
+            {
+                var searchHistory = new SearchHistory
                 {
-                    IsSuccess = false,
-                    Message = $"An error occurred: {ex.Message}",
-                    Result = null
+                    UserId = userId,
+                    SearchTerm = searchTerm,
+                    SearchedAt = DateTime.UtcNow
                 };
+                _CookMateContext.SearchHistories.Add(searchHistory);
+                await _CookMateContext.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Handle exception appropriately
+                return false;
             }
         }*/
 

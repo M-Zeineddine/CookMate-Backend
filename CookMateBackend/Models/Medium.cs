@@ -9,11 +9,9 @@ public partial class Medium
 
     public string? Title { get; set; }
 
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
-    public byte MediaType { get; set; }
-
-    public byte[] MediaData { get; set; } = null!;
+    public byte[]? MediaData { get; set; }
 
     public int? RecipeId { get; set; }
 

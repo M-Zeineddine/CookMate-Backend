@@ -21,11 +21,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="uploads\media\" />
+    <Folder Include="uploads\procedures\" />
+    <Folder Include="uploads\recipes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="uploads\procedures\43120a80-59df-4b90-a127-4442aaa0d866_hummus.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ public partial class RecipeTag
 
     public int TagListId { get; set; }
 
-    public virtual Recipe Recipe { get; set; } = null!;
+    public virtual Recipe? Recipe { get; set; }
 
-    public virtual TagsList TagList { get; set; } = null!;
+    public virtual TagsList? TagList { get; set; }
 }

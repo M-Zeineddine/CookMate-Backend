@@ -14,37 +14,36 @@ namespace CookMateBackend.Controllers
 
     public class CreatePostDto
     {
-        public int PostId { get; set; } // Assuming this is the input PostId
-        public byte Type { get; set; }
-        public int UserId { get; set; }
-        public CreateRecipeDto Recipe { get; set; }
-        public CreateMediaDto Media { get; set; }
+        public int? PostId { get; set; } // Assuming this is the input PostId
+        public byte? Type { get; set; }
+        public int? UserId { get; set; }
+        public CreateRecipeDto? Recipe { get; set; }
+        public CreateMediaDto? Media { get; set; }
     }
 
     public class CreateMediaDto
     {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public byte MediaType { get; set; }
-        public IFormFile MediaFile { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public IFormFile? MediaFile { get; set; }
     }
 
     // DTO for creating a post along with a recipe
     public class CreatePostWithRecipeDto
     {
-        public byte Type { get; set; }
-        public int UserId { get; set; }
-        public CreateMediaDto Media { get; set; }
-        public CreateRecipeDto Recipe { get; set; }
+        public byte? Type { get; set; }
+        public int? UserId { get; set; }
+        public CreateMediaDto? Media { get; set; }
+        public CreateRecipeDto? Recipe { get; set; }
     }
 
     // DTO for creating a recipe
     public class CreateRecipeDto
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public int PreparationTime { get; set; }
-        public string Media { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public int? PreparationTime { get; set; }
+        public string? Media { get; set; }
         // Other properties as needed
     }
 
@@ -179,29 +178,10 @@ namespace CookMateBackend.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<ResponseResult<Post>>> CreatePost([FromForm] CreatePostModel model)
+        public async Task<ResponseResult<Post>> CreatePost([FromForm] CreatePostModel model)
         {
-            try
-            {
-                var result = await _postRepository.CreatePost(model);
-                if ((bool)result.IsSuccess)
-                {
-                    return Ok(result);
-                }
-                else
-                {
-                    return BadRequest(result);
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ResponseResult<Post>
-                {
-                    IsSuccess = false,
-                    Message = $"An error occurred: {ex.Message}",
-                    Result = null
-                });
-            }
+            var result = await _postRepository.CreatePost(model);
+            return result;
         }
 
 
@@ -227,6 +207,93 @@ namespace CookMateBackend.Controllers
                 Result = recipeDetails
             });
         }
+
+        [HttpGet]
+        [Route("getRecipeFeedForUser")]
+        public async Task<ActionResult<ResponseResult<List<RecipeDto>>>> GetRecipeFeedForUser(int userId)
+        {
+            // Call the repository method and expect a ResponseResult directly
+            ResponseResult<List<RecipeDto>> responseResult = await _postRepository.GetRecipeFeedForUserAsync(userId);
+
+            // Check if the result is successful and has content
+            if (responseResult == null || responseResult.Result == null || !responseResult.Result.Any())
+            {
+                return NotFound(new ResponseResult<List<RecipeDto>>
+                {
+                    IsSuccess = false,
+                    Message = "No recipes found in the feed.",
+                    Result = null
+                });
+            }
+
+            // If successful and contains recipes, return the whole ResponseResult
+            return Ok(responseResult);
+        }
+        
+        [HttpGet]
+        [Route("getMediaFeedForUser")]
+        public async Task<ActionResult<ResponseResult<List<MediaDto>>>> GetMediaFeedForUser(int userId)
+        {
+            // Call the repository method and expect a ResponseResult directly
+            ResponseResult<List<MediaDto>> responseResult = await _postRepository.GetMediaFeedForUserAsync(userId);
+
+            // Check if the result is successful and has content
+            if (responseResult == null || responseResult.Result == null || !responseResult.Result.Any())
+            {
+                return NotFound(new ResponseResult<List<MediaDto>>
+                {
+                    IsSuccess = false,
+                    Message = "No media found in the feed.",
+                    Result = null
+                });
+            }
+
+            // If successful and contains recipes, return the whole ResponseResult
+            return Ok(responseResult);
+        }
+
+
+        [HttpPost("toggle-like")]
+        public async Task<ActionResult<ResponseResult<bool>>> ToggleLike([FromBody] ToggleLikeModel request)
+        {
+            var result = new ResponseResult<bool>();
+
+            try
+            {
+                var success = await _postRepository.UpdateMediaLikesAsync(request.MediaId, request.AddLike);
+                result.IsSuccess = success;
+                result.Message = success ? "Media like status updated successfully." : "Failed to update media like status.";
+                result.Result = success;
+
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return NotFound(new ResponseResult<bool>
+                {
+                    IsSuccess = false,
+                    Message = "No media found in the feed.",
+                    Result = false
+                });
+            }
+        }
+
+
+        [HttpGet]
+        [Route("searchRecipes")]
+        public async Task<ActionResult<ResponseResult<List<RecipeSearchResultModel>>>> SearchRecipes([FromQuery] string searchString = "")
+        {
+            ResponseResult<List<RecipeSearchResultModel>> responseResult = await _postRepository.SearchRecipesAsync(searchString);
+            return responseResult;
+        }
+
+        /*[HttpPost]
+        [Route("addProcedure")]
+        public async Task<ActionResult<ResponseResult<List<RecipeSearchResultModel>>>> SearchRecipes([FromQuery] string searchString = "")
+        {
+            ResponseResult<List<RecipeSearchResultModel>> responseResult = await _postRepository.SearchRecipesAsync(searchString);
+            return responseResult;
+        }*/
 
 
 

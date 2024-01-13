@@ -64,9 +64,19 @@ public partial class CookMateContext : DbContext
     public virtual DbSet<MediaDto> MediaModels { get; set; }
 
 
+    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=tcp:coomate-server.database.windows.net,1433;Initial Catalog=CookMate;Persist Security Info=False;User ID=mz;Password=P@ssw0rd;");*/
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-OFBT92P\\SQL2022;Database=CookMate;User Id=sa;Password=P@ssw0rd;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Data Source=.\\SQL2022; DATABASE=CookMate; Initial Catalog=CookMate;user id=sa;password=P@ssw0rd; TrustServerCertificate=True");
+
+    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Data Source=.\\SQL2022; DATABASE=CookMate; Initial Catalog=CookMate;user id=sa;password=P@ssw0rd; TrustServerCertificate=True");*/
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -122,13 +132,12 @@ public partial class CookMateContext : DbContext
 
             entity.ToTable("ingredients");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("name");
+            entity.Property(e => e.Media).HasColumnName("media");
         });
 
         modelBuilder.Entity<IngredientSubstitute>(entity =>
@@ -179,7 +188,8 @@ public partial class CookMateContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("description");
             entity.Property(e => e.MediaData).HasColumnName("media_data");
-            entity.Property(e => e.MediaType).HasColumnName("media_type");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.Likes).HasColumnName("likes");
             entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
             entity.Property(e => e.Title)
                 .HasMaxLength(50)
@@ -223,9 +233,7 @@ public partial class CookMateContext : DbContext
 
             entity.ToTable("procedures");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .IsUnicode(false)
@@ -234,7 +242,6 @@ public partial class CookMateContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("media");
-            entity.Property(e => e.MediaType).HasColumnName("media_type");
             entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
             entity.Property(e => e.Step).HasColumnName("step");
             entity.Property(e => e.Time).HasColumnName("time");
@@ -269,6 +276,7 @@ public partial class CookMateContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("name");
             entity.Property(e => e.PreperationTime).HasColumnName("preperation_time");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
         });
 
         modelBuilder.Entity<RecipeDislike>(entity =>
@@ -300,9 +308,7 @@ public partial class CookMateContext : DbContext
 
             entity.ToTable("recipe_ingredients");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.IngredientListId).HasColumnName("ingredient_list_id");
             entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
             entity.Property(e => e.Weight)

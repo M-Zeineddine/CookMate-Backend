@@ -7,13 +7,11 @@ public partial class Procedure
 {
     public int Id { get; set; }
 
-    public string Title { get; set; } = null!;
+    public string? Title { get; set; }
 
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
-    public string Media { get; set; } = null!;
-
-    public byte MediaType { get; set; }
+    public string? Media { get; set; }
 
     public int Time { get; set; }
 
@@ -21,5 +19,5 @@ public partial class Procedure
 
     public int RecipeId { get; set; }
 
-    public virtual Recipe Recipe { get; set; } = null!;
+    public virtual Recipe? Recipe { get; set; }
 }

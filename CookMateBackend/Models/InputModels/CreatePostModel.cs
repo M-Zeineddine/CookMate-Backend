@@ -10,7 +10,7 @@ namespace CookMateBackend.Models.InputModels
         public int UserId { get; set; }
 
         // Recipe data
-        public string? RecipeName { get; set; }
+        public required string RecipeName { get; set; }
         public string? RecipeDescription { get; set; }
         public int? PreparationTime { get; set; }
         public IFormFile? RecipeMedia { get; set; } // Image for recipe
@@ -19,7 +19,8 @@ namespace CookMateBackend.Models.InputModels
         public string? MediaTitle { get; set; }
         public string? MediaDescription { get; set; }
         public IFormFile? MediaData { get; set; } // Image for media post
-        public byte? MediaType { get; set; } // "1" for image, "2" for video
+        public int? RecipeId { get; set; }
+
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
@@ -47,5 +48,23 @@ namespace CookMateBackend.Models.InputModels
             }
         }
     }
+
+    public class IngredientModel
+    {
+        public decimal Weight { get; set; }
+        public int IngredientListId { get; set; }
+        public int RecipeId { get; set; }  // Add this
+    }
+
+    public class ProcedureModel
+    {
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public IFormFile? Media { get; set; }  // Assuming this is how you handle media files
+        public int Time { get; set; }
+        public byte Step { get; set; }
+        public int RecipeId { get; set; }  // Add this
+    }
+
 
 }

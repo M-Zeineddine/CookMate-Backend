@@ -67,7 +67,7 @@ namespace CookMateBackend.Controllers
                 return BadRequest(ModelState);
 
             }
-            catch (Exception error)
+            catch (Exception)
             {
                 return StatusCode(500);
             }

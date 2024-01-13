@@ -9,13 +9,13 @@ public partial class Review
 
     public decimal Rating { get; set; }
 
-    public string Comment { get; set; } = null!;
+    public string? Comment { get; set; }
 
     public int UserId { get; set; }
 
     public int RecipesId { get; set; }
 
-    public virtual Recipe Recipes { get; set; } = null!;
+    public virtual Recipe? Recipes { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    public virtual User? User { get; set; }
 }

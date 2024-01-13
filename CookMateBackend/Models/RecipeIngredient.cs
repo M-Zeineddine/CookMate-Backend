@@ -13,7 +13,7 @@ public partial class RecipeIngredient
 
     public int IngredientListId { get; set; }
 
-    public virtual Ingredient IngredientList { get; set; } = null!;
+    public virtual Ingredient? IngredientList { get; set; }
 
-    public virtual Recipe Recipe { get; set; } = null!;
+    public virtual Recipe? Recipe { get; set; }
 }
