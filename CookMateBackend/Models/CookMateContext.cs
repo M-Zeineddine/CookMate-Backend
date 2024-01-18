@@ -69,13 +69,13 @@ public partial class CookMateContext : DbContext
         => optionsBuilder.UseSqlServer("Server=tcp:coomate-server.database.windows.net,1433;Initial Catalog=CookMate;Persist Security Info=False;User ID=mz;Password=P@ssw0rd;");*/
 
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=.\\SQL2022; DATABASE=CookMate; Initial Catalog=CookMate;user id=sa;password=P@ssw0rd; TrustServerCertificate=True");
-
     /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Data Source=.\\SQL2022; DATABASE=CookMate; Initial Catalog=CookMate;user id=sa;password=P@ssw0rd; TrustServerCertificate=True");*/
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Data Source=SQL8006.site4now.net;Initial Catalog=db_aa4016_mzhost;User Id=db_aa4016_mzhost_admin;Password=P@ssw0rd");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -85,7 +85,6 @@ public partial class CookMateContext : DbContext
             entity.ToTable("favorites");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.PostId).HasColumnName("post_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -356,7 +355,6 @@ public partial class CookMateContext : DbContext
             entity.ToTable("recipe_tags");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
             entity.Property(e => e.TagListId).HasColumnName("tag_list_id");
@@ -402,7 +400,6 @@ public partial class CookMateContext : DbContext
             entity.ToTable("review");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Comment)
                 .HasMaxLength(255)
@@ -451,7 +448,6 @@ public partial class CookMateContext : DbContext
             entity.ToTable("tag_category");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.IsDuplicatable).HasColumnName("is_duplicatable");
             entity.Property(e => e.IsMain).HasColumnName("is_main");
@@ -468,7 +464,6 @@ public partial class CookMateContext : DbContext
             entity.ToTable("tags_list");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)

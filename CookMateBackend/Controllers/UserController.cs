@@ -164,6 +164,7 @@ namespace CookMateBackend.Controllers
         }
 
 
+
         [HttpGet]
         [Route("getSearchHistoryByUser")]
         public async Task<IActionResult> GetSearchHistoryByUser(int userId)

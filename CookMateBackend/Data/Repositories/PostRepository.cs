@@ -18,7 +18,8 @@ namespace CookMateBackend.Data.Repositories
             _CookMateContext = cookMateContext;
         }
 
-        public string baseUrl = "https://cookmateapi.azurewebsites.net/";
+        public string baseUrl = "http://mz9436-001-site1.ctempurl.com/";
+
         public async Task<ResponseResult<List<UserPostsModel>>> GetPostsByUserId(int userId)
         {
             var result = new ResponseResult<List<UserPostsModel>>();
@@ -42,34 +43,45 @@ namespace CookMateBackend.Data.Repositories
                 var postsWithDetails = await query.ToListAsync();
 
                 var userPosts = postsWithDetails
-                    .Select(p => new UserPostsModel
+                .Select(p => new
+                {
+                    Post = p,
+                    LatestDate = (p.Recipe != null && p.Media != null)
+                                 ? (p.Recipe.CreatedAt > p.Media.CreatedAt ? p.Recipe.CreatedAt : p.Media.CreatedAt)
+                                 : (p.Recipe?.CreatedAt ?? p.Media?.CreatedAt)
+                })
+                .OrderByDescending(p => p.LatestDate) // Sorting by the latest date
+                .Select(p => new UserPostsModel
+                {
+                    Id = p.Post.Id,
+                    PostType = p.Post.Type, // Make sure this is cast correctly if needed
+                    Recipe = p.Post.Recipe != null ? new RecipeDto // Only populate if Recipe is not null
                     {
-                        Id = p.Id,
-                        PostType = p.Type,
-                        Recipe = p.Recipe != null ? new RecipeDto // Only populate if Recipe is not null
+                        Id = p.Post.Recipe.Id,
+                        Name = p.Post.Recipe.Name,
+                        Description = p.Post.Recipe.Description,
+                        PreparationTime = p.Post.Recipe.PreperationTime,
+                        Media = p.Post.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{p.Post.Recipe.Media}" : null,
+                        CreatedAt = p.Post.Recipe.CreatedAt,
+                        // ... other RecipeDto properties
+                    } : null,
+                    Media = p.Post.Media != null ? new MediaDto // Only populate if Media is not null
+                    {
+                        Id = p.Post.Media.Id,
+                        Title = p.Post.Media.Title,
+                        Description = p.Post.Media.Description,
+                        MediaData = p.Post.Media.MediaData != null ? $"{baseUrl}{generalMediaPath}{p.Post.Media.MediaData}" : null,
+                        CreatedAt = p.Post.Media.CreatedAt,
+                        // ... other MediaDto properties
+                        RecipeReference = p.Post.Media.RecipeId.HasValue ? new RecipeReferenceDto
                         {
-                            Id = p.Recipe.Id,
-                            Name = p.Recipe.Name,
-                            Description = p.Recipe.Description,
-                            PreparationTime = p.Recipe.PreperationTime,
-                            Media = p.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{p.Recipe.Media}" : null,
-                            // Map other recipe properties
-                        } : null,
-                        Media = p.Media != null ? new MediaDto // Only populate if Media is not null
-                        {
-                            Id = p.Media.Id,
-                            Title = p.Media.Title,
-                            Description = p.Media.Description,
-                            MediaData = p.Media.MediaData != null ? $"{baseUrl}{generalMediaPath}{p.Media.MediaData}" : null,
-                            CreatedAt = p.Media.CreatedAt,
-                            RecipeReference = p.Media.RecipeId.HasValue ? new RecipeReferenceDto
-                            {
-                                Id = p.Media.RecipeId.Value,
-                                Name = allRecipes.FirstOrDefault(r => r.Id == p.Media.RecipeId.Value)?.Name
-                            } : null
-                            // Map other media properties
+                            Id = p.Post.Media.RecipeId.Value,
+                            Name = allRecipes.FirstOrDefault(r => r.Id == p.Post.Media.RecipeId.Value)?.Name
                         } : null
-                    }).ToList();
+                    } : null
+                }).ToList();
+
+
 
                 result.IsSuccess = true;
                 result.Message = "Posts fetched successfully";
@@ -293,6 +305,102 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
+        public async Task<ResponseResult<List<TagsList>>> SearchTagsAsync(string searchString)
+        {
+            List<TagsList> searchResults;
+
+            if (string.IsNullOrEmpty(searchString))
+            {
+                // If the search string is null or empty, return all tags
+                searchResults = await _CookMateContext.TagsLists
+                    .Select(t => new TagsList
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        // You can add more fields from the tag as needed, such as the tag category
+                        TagCategoryId = t.TagCategoryId
+                    }).ToListAsync();
+            }
+            else
+            {
+                // If there's a search string, return tags that match the condition
+                searchResults = await _CookMateContext.TagsLists
+                    .Where(t => t.Name.Contains(searchString)) // Modify this condition as needed
+                    .Select(t => new TagsList
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        // You can add more fields from the tag as needed, such as the tag category
+                        TagCategoryId = t.TagCategoryId
+                    }).ToListAsync();
+            }
+
+            // Wrap in a ResponseResult and return
+            return new ResponseResult<List<TagsList>>
+            {
+                IsSuccess = searchResults.Any(),
+                Message = searchResults.Any() ? "Tags found." : "No tags found.",
+                Result = searchResults
+            };
+        }
+
+
+
+
+
+
+        public async Task<ResponseResult<List<RecipeTag>>> AddRecipeTagsAsync(List<CreateRecipeTagModel> tagModels)
+        {
+            var result = new ResponseResult<List<RecipeTag>>();
+
+            try
+            {
+                List<RecipeTag> newTags = new List<RecipeTag>();
+
+                foreach (var tagModel in tagModels.DistinctBy(tm => new { tm.RecipeId, tm.TagListId }))
+                {
+                    bool tagExists = await _CookMateContext.RecipeTags
+                        .AnyAsync(rt => rt.RecipeId == tagModel.RecipeId && rt.TagListId == tagModel.TagListId);
+
+                    if (!tagExists)
+                    {
+                        RecipeTag newTag = new RecipeTag
+                        {
+                            RecipeId = tagModel.RecipeId,
+                            TagListId = tagModel.TagListId
+                        };
+
+                        _CookMateContext.RecipeTags.Add(newTag);
+                        newTags.Add(newTag); // It's better to add after context.Add to avoid any side effects
+
+                        result.IsSuccess = true;
+                        result.Message = "Tag added successfuly";
+                        result.Result = newTags;
+                    }
+                    else
+                    {
+                        result.IsSuccess = true;
+                        result.Message = "Couldn't add tag";
+                        result.Result = null;
+
+                    }
+                }
+
+                await _CookMateContext.SaveChangesAsync();
+
+                
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = "Couldn't add tag";
+                result.Result = null;
+            }
+
+            return result;
+        }
+
+
 
         public async Task<ResponseResult<List<RecipeDto>>> GetRecipeFeedForUserAsync(int loggedInUserId)
         {
@@ -315,6 +423,7 @@ namespace CookMateBackend.Data.Repositories
                     .Where(p => followedUserIds.Contains(p.UserId) && p.Type == 1 && p.Recipe != null)
                     .Include(p => p.Recipe)
                     .Include(p => p.User)
+                    .OrderByDescending(p => p.Recipe.CreatedAt) // Sorting by the latest recipes first
                     .Select(p => new RecipeDto
                     {
                         Id = p.Recipe.Id,
@@ -374,6 +483,7 @@ namespace CookMateBackend.Data.Repositories
                     .Where(p => followedUserIds.Contains(p.UserId) && p.Type == 2 && p.Media != null)
                     .Include(p => p.Media)
                     .Include(p => p.User)
+                    .OrderByDescending(p => p.Media.CreatedAt) // Sorting by the latest recipes first
                     .Select(p => new MediaDto
                     {
                         Id = p.Media.Id,

@@ -30,8 +30,8 @@ namespace CookMateBackend.Controllers
         }
 
         [HttpPost]
-        [Route("addIngredients")]
-        public async Task<ResponseResult<List<RecipeIngredient>>> AddIngredients(IEnumerable<IngredientModel> ingredientModels)
+        [Route("addRecipeIngredients")]
+        public async Task<ResponseResult<List<RecipeIngredient>>> AddIngredients([FromBody] List<IngredientModel> ingredientModels)
         {
             // Directly return the result of the AddIngredients method
             return await _ingredientRepository.AddIngredients(ingredientModels);

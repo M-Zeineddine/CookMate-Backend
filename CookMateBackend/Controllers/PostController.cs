@@ -7,6 +7,7 @@ using CookMateBackend.Models.ResponseResults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 
 namespace CookMateBackend.Controllers
@@ -286,6 +287,32 @@ namespace CookMateBackend.Controllers
             ResponseResult<List<RecipeSearchResultModel>> responseResult = await _postRepository.SearchRecipesAsync(searchString);
             return responseResult;
         }
+        
+        [HttpGet]
+        [Route("searchTags")]
+        public async Task<ActionResult<ResponseResult<List<TagsList>>>> SearchTags([FromQuery] string searchString = "")
+        {
+            ResponseResult<List<TagsList>> responseResult = await _postRepository.SearchTagsAsync(searchString);
+            return responseResult;
+        }
+
+
+        [HttpPost]
+        [Route("addRecipeTag")]
+        public async Task<ResponseResult<List<RecipeTag>>> AddRecipeTagsAsync(List<CreateRecipeTagModel> tagModels)
+        {
+            ResponseResult<List<RecipeTag>> responseResult = await _postRepository.AddRecipeTagsAsync(tagModels);
+            return responseResult;
+        }
+
+
+        /*[HttpPost]
+        [Route("addRecipeTag")]
+        public async Task<ResponseResult<List<int>>> AddRecipeTags(int recipeId, int[] tagIds)
+        {
+            ResponseResult<List<int>> responseResult = await _postRepository.AddRecipeTagsAsync(recipeId, tagIds);
+            return responseResult;
+        }*/
 
         /*[HttpPost]
         [Route("addProcedure")]

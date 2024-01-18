@@ -14,7 +14,10 @@ namespace CookMateBackend.Data.Interfaces
         Task<ResponseResult<List<MediaDto>>> GetMediaFeedForUserAsync(int loggedInUserId);
         Task<bool> UpdateMediaLikesAsync(int mediaId, bool addLike);
         Task<ResponseResult<List<RecipeSearchResultModel>>> SearchRecipesAsync(string searchString);
-
+        Task<ResponseResult<List<TagsList>>> SearchTagsAsync(string searchString);
+        Task<ResponseResult<List<RecipeTag>>> AddRecipeTagsAsync(List<CreateRecipeTagModel> tagModels);
+        /*Task<ResponseResult<List<int>>> AddRecipeTagsAsync(int recipeId, int[] tagIds);
+*/
 
     }
 }
