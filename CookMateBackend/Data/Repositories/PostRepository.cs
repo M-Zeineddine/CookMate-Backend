@@ -219,6 +219,7 @@ namespace CookMateBackend.Data.Repositories
         {
             // Define the base URL for media access based on your server's address
             string recipeMediaPath = "uploads/recipes/";
+            string ingredientMediaPath = "uploads/ingredients/";
 
             var recipe = await _CookMateContext.Recipes
                 .Where(r => r.Id == recipeId)
@@ -241,10 +242,10 @@ namespace CookMateBackend.Data.Repositories
                     }).ToList(),
                     Ingredients = r.RecipeIngredients.Select(ri => new IngredientDto
                     {
-                        Id = ri.Id,
-                        Name = ri.IngredientList.Name, // Fetching the name from the related Ingredient entity
-                        Weight = ri.Weight
-                        // Map other fields as needed
+                        Id = ri.IngredientList.Id,
+                        Name = ri.IngredientList.Name,
+                        Weight = ri.Weight,
+                        MediaUrl = !string.IsNullOrEmpty(ri.IngredientList.Media) ? $"{baseUrl}{ingredientMediaPath}{ri.IngredientList.Media}" : null
                     }).ToList(),
                     User = r.Posts
                         .Where(p => p.Type == 1 && p.RecipeId == r.Id)

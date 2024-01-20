@@ -10,11 +10,35 @@ namespace CookMateBackend.Data.Repositories
     public class IngredientRepository: IIngredientRepository
     {
         public readonly CookMateContext _CookMateContext;
+        private readonly IWebHostEnvironment _hostEnvironment; // To save the file on the server
 
-        public IngredientRepository(CookMateContext cookMateContext)
+        public IngredientRepository(CookMateContext cookMateContext, IWebHostEnvironment hostEnvironment)
         {
             _CookMateContext = cookMateContext;
+            _hostEnvironment = hostEnvironment;
         }
+
+        public async Task<string> SaveImage(IFormFile imageFile)
+        {
+            if (imageFile == null)
+            {
+                throw new ArgumentNullException(nameof(imageFile));
+            }
+
+            string uploadsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "uploads", "ingredients");
+            Directory.CreateDirectory(uploadsFolder); // Ensure the directory exists
+
+            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
+            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(fileStream);
+            }
+
+            return uniqueFileName; // Return the file name (you might need to adjust this depending on how you want to store/access the file)
+        }
+
 
         public async Task<ResponseResult<List<IngredientSearchResultModel>>> SearchIngredientsAsync(string searchString)
         {
@@ -89,5 +113,6 @@ namespace CookMateBackend.Data.Repositories
             return result;
         }
 
+        
     }
 }

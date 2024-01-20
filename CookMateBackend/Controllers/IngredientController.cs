@@ -21,6 +21,59 @@ namespace CookMateBackend.Controllers
             _ingredientRepository = ingredientRepository;
         }
 
+        [HttpPost("add-ingredient")]
+        public async Task<ResponseResult<Ingredient>> AddIngredient([FromForm] CreateIngredientModel model)
+        {
+            var result = new ResponseResult<Ingredient>();
+
+            // Validate the input data
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                result.IsSuccess = false;
+                result.Message = "Missing input: Ingredient Name is required.";
+                return result;
+            }
+
+            // Check for duplicate ingredient name
+            bool ingredientExists = _context.Ingredients.Any(i => i.Name.ToLower() == model.Name.ToLower());
+            if (ingredientExists)
+            {
+                result.IsSuccess = false;
+                result.Message = "An ingredient with this name already exists.";
+                return result;
+            }
+
+            string uniqueFileName = null;
+            if (model.Image != null)
+            {
+                uniqueFileName = await _ingredientRepository.SaveImage(model.Image);
+            }
+
+            var newIngredient = new Ingredient
+            {
+                Name = model.Name,
+                Media = uniqueFileName // The file path to the image
+            };
+
+            try
+            {
+                _context.Ingredients.Add(newIngredient);
+                await _context.SaveChangesAsync();
+
+                result.IsSuccess = true;
+                result.Result = newIngredient;
+                result.Message = "Ingredient added successfully.";
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = $"An error occurred while adding the ingredient: {ex.Message}";
+            }
+
+            return result;
+        }
+
+
         [HttpGet]
         [Route("searchIngredients")]
         public async Task<ActionResult<ResponseResult<List<IngredientSearchResultModel>>>> SearchIngredients([FromQuery] string searchString = "")

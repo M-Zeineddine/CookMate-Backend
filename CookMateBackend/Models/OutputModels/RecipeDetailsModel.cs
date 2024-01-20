@@ -18,7 +18,9 @@
         public int? Id { get; set; }
         public string? Name { get; set; } // The name of the ingredient from the Ingredient table.
         public decimal? Weight { get; set; } // The weight of the ingredient for this particular recipe from the RecipeIngredient table.
+        public string? MediaUrl { get; set; } // The URL to the media of the ingredient.
     }
+
 
 
 }

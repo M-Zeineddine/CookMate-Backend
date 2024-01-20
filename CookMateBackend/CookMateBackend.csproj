@@ -28,6 +28,7 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="uploads\media\" />
+    <Folder Include="uploads\ingredients\" />
     <Folder Include="uploads\procedures\" />
     <Folder Include="uploads\recipes\" />
   </ItemGroup>

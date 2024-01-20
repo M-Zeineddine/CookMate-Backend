@@ -113,6 +113,7 @@ public partial class CookMateContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FollowerId).HasColumnName("follower_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
             entity.HasOne(d => d.FollowerNavigation).WithMany(p => p.FollowerFollowerNavigations)
                 .HasForeignKey(d => d.FollowerId)
