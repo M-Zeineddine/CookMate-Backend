@@ -46,6 +46,7 @@ namespace CookMateBackend.Data.Repositories
                 .Select(p => new
                 {
                     Post = p,
+                    RecipeAvgRating = p.Recipe != null ? _CookMateContext.Reviews.Where(r => r.RecipesId == p.Recipe.Id).Average(r => (decimal?)r.Rating) : null,
                     LatestDate = (p.Recipe != null && p.Media != null)
                                  ? (p.Recipe.CreatedAt > p.Media.CreatedAt ? p.Recipe.CreatedAt : p.Media.CreatedAt)
                                  : (p.Recipe?.CreatedAt ?? p.Media?.CreatedAt)
@@ -63,6 +64,8 @@ namespace CookMateBackend.Data.Repositories
                         PreparationTime = p.Post.Recipe.PreperationTime,
                         Media = p.Post.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{p.Post.Recipe.Media}" : null,
                         CreatedAt = p.Post.Recipe.CreatedAt,
+                        AverageRating = p.RecipeAvgRating ?? 0
+
                         // ... other RecipeDto properties
                     } : null,
                     Media = p.Post.Media != null ? new MediaDto // Only populate if Media is not null
@@ -215,7 +218,7 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
-        public async Task<RecipeDetailsModel> GetRecipeDetailsByIdAsync(int recipeId)
+        public async Task<RecipeDetailsModel> GetRecipeDetailsByIdAsync(int recipeId, int loggedInUserId)
         {
             // Define the base URL for media access based on your server's address
             string recipeMediaPath = "uploads/recipes/";
@@ -230,6 +233,7 @@ namespace CookMateBackend.Data.Repositories
                     Description = r.Description,
                     PreparationTime = r.PreperationTime,
                     Media = !string.IsNullOrEmpty(r.Media) ? $"{baseUrl}{recipeMediaPath}{r.Media}" : null,
+                    IsCreatedByUser = r.Posts.Any(p => p.UserId == loggedInUserId && p.RecipeId == r.Id),
                     Procedures = r.Procedures.Select(p => new Procedure
                     {
                         Id = p.Id,
@@ -246,6 +250,13 @@ namespace CookMateBackend.Data.Repositories
                         Name = ri.IngredientList.Name,
                         Weight = ri.Weight,
                         MediaUrl = !string.IsNullOrEmpty(ri.IngredientList.Media) ? $"{baseUrl}{ingredientMediaPath}{ri.IngredientList.Media}" : null
+                    }).ToList(),
+                    Tags = r.RecipeTags
+                    .Select(rt => new TagDto
+                    {
+                        Id = rt.TagList.Id,
+                        Name = rt.TagList.Name
+                        // Map other properties as needed.
                     }).ToList(),
                     User = r.Posts
                         .Where(p => p.Type == 1 && p.RecipeId == r.Id)
@@ -415,16 +426,17 @@ namespace CookMateBackend.Data.Repositories
 
                 // Get the IDs of the users that the logged-in user follows
                 var followedUserIds = await _CookMateContext.Followers
-                    .Where(f => f.UserId == loggedInUserId)
-                    .Select(f => f.FollowerId)
+                    .Where(f => f.FollowerId == loggedInUserId)
+                    .Select(f => f.UserId)
                     .ToListAsync();
 
                 // Get the posts with type 1 from the followed users
                 var recipePosts = await _CookMateContext.Posts
                     .Where(p => followedUserIds.Contains(p.UserId) && p.Type == 1 && p.Recipe != null)
                     .Include(p => p.Recipe)
+                    .ThenInclude(r => r.Reviews) // Include the Reviews for each Recipe
                     .Include(p => p.User)
-                    .OrderByDescending(p => p.Recipe.CreatedAt) // Sorting by the latest recipes first
+                    .OrderByDescending(p => p.Recipe.CreatedAt)
                     .Select(p => new RecipeDto
                     {
                         Id = p.Recipe.Id,
@@ -433,7 +445,6 @@ namespace CookMateBackend.Data.Repositories
                         PreparationTime = p.Recipe.PreperationTime,
                         Media = !string.IsNullOrEmpty(p.Recipe.Media) ? $"{baseUrl}{recipeMediaPath}{p.Recipe.Media}" : null,
                         CreatedAt = p.Recipe.CreatedAt,
-
                         User = new UserModel
                         {
                             Id = p.UserId,
@@ -441,7 +452,8 @@ namespace CookMateBackend.Data.Repositories
                             ProfilePic = !string.IsNullOrEmpty(p.User.ProfilePic)
                                          ? $"{baseUrl}{profilePicPath}{p.User.ProfilePic}"
                                          : null
-                        }
+                        },
+                        AverageRating = p.Recipe.Reviews.Any() ? p.Recipe.Reviews.Average(r => r.Rating) : 0 // Calculate average rating
                     })
                     .ToListAsync();
 
@@ -476,8 +488,8 @@ namespace CookMateBackend.Data.Repositories
 
                 // Get the IDs of the users that the logged-in user follows
                 var followedUserIds = await _CookMateContext.Followers
-                    .Where(f => f.UserId == loggedInUserId)
-                    .Select(f => f.FollowerId)
+                    .Where(f => f.FollowerId == loggedInUserId)
+                    .Select(f => f.UserId)
                     .ToListAsync();
 
                 var mediaPosts = await _CookMateContext.Posts
@@ -501,7 +513,7 @@ namespace CookMateBackend.Data.Repositories
                                          ? $"{profilePicPath}{p.User.ProfilePic}"
                                          : null
                         },
-
+                        FavoritesCount = _CookMateContext.Favorites.Count(f => f.PostId == p.Id), // Count the favorites for this post
                         RecipeReference = p.Media.RecipeId.HasValue ? new RecipeReferenceDto
                         {
                             Id = p.Media.RecipeId.Value,

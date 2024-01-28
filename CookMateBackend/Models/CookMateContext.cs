@@ -411,6 +411,7 @@ public partial class CookMateContext : DbContext
                 .HasColumnName("rating");
             entity.Property(e => e.RecipesId).HasColumnName("recipes_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
             entity.HasOne(d => d.Recipes).WithMany(p => p.Reviews)
                 .HasForeignKey(d => d.RecipesId)

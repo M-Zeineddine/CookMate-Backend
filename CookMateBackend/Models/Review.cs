@@ -14,6 +14,7 @@ public partial class Review
     public int UserId { get; set; }
 
     public int RecipesId { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public virtual Recipe? Recipes { get; set; }
 

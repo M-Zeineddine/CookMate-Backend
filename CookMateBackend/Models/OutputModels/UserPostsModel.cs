@@ -15,6 +15,8 @@
         public string? Description { get; set; }
         public string? PreparationTime { get; set; }
         public string? Media { get; set; }
+        public decimal AverageRating { get; set; } // Property to hold the average rating
+
         public DateTime? CreatedAt { get; set; }
         public UserModel? User { get; set; }
 
@@ -28,6 +30,8 @@
         public string? MediaData { get; set; }
         public int? Likes { get; set; }
         public DateTime? CreatedAt { get; set;}
+        public int? FavoritesCount { get; set; } // New property to hold the count of favorites
+
         public RecipeReferenceDto? RecipeReference { get; set; }
         public UserModel? User { get; set; }
 

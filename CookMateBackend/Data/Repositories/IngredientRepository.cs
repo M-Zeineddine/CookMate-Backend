@@ -7,10 +7,11 @@ using CookMateBackend.Models.InputModels;
 
 namespace CookMateBackend.Data.Repositories
 {
-    public class IngredientRepository: IIngredientRepository
+    public class IngredientRepository : IIngredientRepository
     {
         public readonly CookMateContext _CookMateContext;
         private readonly IWebHostEnvironment _hostEnvironment; // To save the file on the server
+        public string baseUrl = "http://mz9436-001-site1.ctempurl.com/";
 
         public IngredientRepository(CookMateContext cookMateContext, IWebHostEnvironment hostEnvironment)
         {
@@ -43,6 +44,7 @@ namespace CookMateBackend.Data.Repositories
         public async Task<ResponseResult<List<IngredientSearchResultModel>>> SearchIngredientsAsync(string searchString)
         {
             List<IngredientSearchResultModel> searchResults;
+            string ingredientMediaPath = "uploads/ingredients/";
 
             if (string.IsNullOrEmpty(searchString))
             {
@@ -52,7 +54,7 @@ namespace CookMateBackend.Data.Repositories
                     {
                         IngredientId = i.Id,
                         IngredientName = i.Name,
-                        IngredientImgUrl = i.Media// Assuming one owner per Ingredient
+                        IngredientImgUrl = i.Media != null ? $"{baseUrl}{ingredientMediaPath}{i.Media}" : null,
                     }).ToListAsync();
             }
             else
@@ -64,7 +66,7 @@ namespace CookMateBackend.Data.Repositories
                     {
                         IngredientId = r.Id,
                         IngredientName = r.Name,
-                        IngredientImgUrl = r.Media,
+                        IngredientImgUrl = r.Media != null ? $"{baseUrl}{ingredientMediaPath}{r.Media}" : null,
                     }).ToListAsync();
             }
 
@@ -102,6 +104,7 @@ namespace CookMateBackend.Data.Repositories
                 await _CookMateContext.SaveChangesAsync();
 
                 result.IsSuccess = true;
+                result.Message = "ingredients added!";
                 result.Result = newIngredients;
             }
             catch (Exception ex)
@@ -113,6 +116,99 @@ namespace CookMateBackend.Data.Repositories
             return result;
         }
 
-        
+
+        public async Task<ResponseResult<List<SubstituteDto>>> GetSubstitutesAsync(int ingredientId)
+        {
+            string ingredientsMediaPath = "uploads/ingredients/";
+
+            var substitutes = await _CookMateContext.IngredientSubstitutes
+                .Where(sub => sub.IngredientId == ingredientId)
+                .Select(sub => new SubstituteDto
+                {
+                    Id = sub.Substitute.Id,
+                    Name = sub.Substitute.Name,
+                    MediaUrl = !string.IsNullOrEmpty(sub.Substitute.Media) ? $"{baseUrl}{ingredientsMediaPath}{sub.Substitute.Media}" : null
+                })
+                .ToListAsync();
+
+            return new ResponseResult<List<SubstituteDto>>
+            {
+                IsSuccess = substitutes.Any(),
+                Message = substitutes.Any() ? null : "No substitutes found.",
+                Result = substitutes
+            };
+        }
+
+
+       /* public async Task<ResponseResult<SubstituteDto>> AddSubstituteAsync(int ingredientId, int substituteId)
+        {
+            var result = new ResponseResult<SubstituteDto>();
+
+            // Check if the main ingredient exists
+            var ingredientExists = await _CookMateContext.Ingredients.AnyAsync(i => i.Id == ingredientId);
+            if (!ingredientExists)
+            {
+                result.IsSuccess = false;
+                result.Message = "Main ingredient not found.";
+                return result;
+            }
+
+            // Check if the substitute ingredient exists
+            var substituteExists = await _CookMateContext.Ingredients.AnyAsync(i => i.Id == substituteId);
+            if (!substituteExists)
+            {
+                result.IsSuccess = false;
+                result.Message = "Substitute ingredient not found.";
+                return result;
+            }
+
+            // Check if the substitute relationship already exists
+            var substituteRelationExists = await _CookMateContext.IngredientSubstitutes
+                .AnyAsync(s => s.IngredientId == ingredientId && s.SubstituteId == substituteId);
+            if (substituteRelationExists)
+            {
+                result.IsSuccess = false;
+                result.Message = "This substitute is already linked to the ingredient.";
+                return result;
+            }
+
+            var substituteRelation = new IngredientSubstitute
+            {
+                IngredientId = ingredientId,
+                SubstituteId = substituteId
+            };
+
+            try
+            {
+                _CookMateContext.IngredientSubstitutes.Add(substituteRelation);
+                await _CookMateContext.SaveChangesAsync();
+
+                var substituteDto = new SubstituteDto
+                {
+                    Id = substituteId,
+                    // Fetch the name and media URL for the substitute
+                    Name = _CookMateContext.Ingredients.Where(i => i.Id == substituteId).Select(i => i.Name).FirstOrDefault(),
+                    MediaUrl = _CookMateContext.Ingredients.Where(i => i.Id == substituteId).Select(i => i.Media).FirstOrDefault()
+                };
+
+                return new ResponseResult<SubstituteDto>
+                {
+                    IsSuccess = true,
+                    Message = "Substitute added successfully.",
+                    Result = substituteDto
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the exception here if necessary
+                return new ResponseResult<SubstituteDto>
+                {
+                    IsSuccess = false,
+                    Message = $"An error occurred while adding the substitute: {ex.Message}"
+                    // Do not set the Result in case of an error
+                };
+            }
+
+        }*/
     }
 }

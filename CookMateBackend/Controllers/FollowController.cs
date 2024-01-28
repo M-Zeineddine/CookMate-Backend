@@ -24,31 +24,32 @@ namespace CookMateBackend.Controllers
             _followRepository = followRepository;
         }
 
-        [HttpGet("my-followers/{loggedInUserId}")]
-        public async Task<ActionResult<List<FollowerInfo>>> GetMyFollowers(int loggedInUserId, [FromQuery] string search)
+        [HttpGet("my-followers")]
+        public async Task<ResponseResult<List<FollowerInfo>>> GetMyFollowers(int loggedInUserId, [FromQuery] string search)
         {
             return await _followRepository.GetMyFollowersWithStatusAsync(loggedInUserId, search);
         }
 
-        [HttpGet("my-followings/{loggedInUserId}")]
-        public async Task<ActionResult<List<FollowerInfo>>> GetMyFollowings(int loggedInUserId, [FromQuery] string search)
+
+        [HttpGet("my-followings")]
+        public async Task<ResponseResult<List<FollowerInfo>>> GetMyFollowings(int loggedInUserId, [FromQuery] string search)
         {
             return await _followRepository.GetMyFollowingsWithStatusAsync(loggedInUserId, search);
         }
 
         [HttpPost("follow")]
-        public async Task<ActionResult<ResponseResult<bool>>> FollowUser(int loggedInUserId, int targetUserId)
+        public async Task<ActionResult<ResponseResult<bool>>> FollowUser([FromBody] UserFollowModel model)
         {
-            return await _followRepository.FollowUserAsync(loggedInUserId, targetUserId);
+            return await _followRepository.FollowUserAsync(model.LoggedInUserId, model.TargetUserId);
         }
 
-
-        [HttpPost("unfollow/{targetUserId}")]
-        public async Task<ActionResult<ResponseResult<bool>>> UnfollowUser(int loggedInUserId, int targetUserId)
+        [HttpPost("unfollow")]
+        public async Task<ActionResult<ResponseResult<bool>>> UnfollowUser([FromBody] UserFollowModel model)
         {
-            var response = await _followRepository.UnfollowUserAsync(loggedInUserId, targetUserId);
-            return response.IsSuccess == true ? Ok(response) : BadRequest(response);
+            return await _followRepository.UnfollowUserAsync(model.LoggedInUserId, model.TargetUserId);
+
         }
+
     }
 
 }

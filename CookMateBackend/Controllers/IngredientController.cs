@@ -4,6 +4,7 @@ using CookMateBackend.Models.InputModels;
 using CookMateBackend.Models.OutputModels;
 using CookMateBackend.Models.ResponseResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CookMateBackend.Controllers
 {
@@ -89,6 +90,19 @@ namespace CookMateBackend.Controllers
             // Directly return the result of the AddIngredients method
             return await _ingredientRepository.AddIngredients(ingredientModels);
         }
+
+
+        [HttpGet("substitutes")]
+        public async Task<ActionResult<ResponseResult<List<SubstituteDto>>>> GetSubstitutes(int ingredientId)
+        {
+            return await _ingredientRepository.GetSubstitutesAsync(ingredientId);
+        }
+
+        /*[HttpPost("{ingredientId}/substitutes")]
+        public async Task<ActionResult<ResponseResult<SubstituteDto>>> AddSubstitute(int ingredientId, int substituteId)
+        {
+            return await _ingredientRepository.AddSubstituteAsync(ingredientId, substituteId);
+        }*/
 
 
     }

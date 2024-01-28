@@ -10,5 +10,7 @@ namespace CookMateBackend.Data.Interfaces
         Task<ResponseResult<List<IngredientSearchResultModel>>> SearchIngredientsAsync(string searchString);
         Task<ResponseResult<List<RecipeIngredient>>> AddIngredients(IEnumerable<IngredientModel> ingredientModels);
         Task<string> SaveImage(IFormFile imageFile);
+        Task<ResponseResult<List<SubstituteDto>>> GetSubstitutesAsync(int ingredientId);
+        /*Task<ResponseResult<SubstituteDto>> AddSubstituteAsync(int ingredientId, int substituteId);*/
     }
 }

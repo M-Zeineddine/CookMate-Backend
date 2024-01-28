@@ -188,9 +188,9 @@ namespace CookMateBackend.Controllers
 
         [HttpGet]
         [Route("getRecipeDetails")]
-        public async Task<ActionResult<ResponseResult<RecipeDetailsModel>>> GetRecipeDetails(int id)
+        public async Task<ActionResult<ResponseResult<RecipeDetailsModel>>> GetRecipeDetails(int id, int loggedInUserId)
         {
-            var recipeDetails = await _postRepository.GetRecipeDetailsByIdAsync(id);
+            var recipeDetails = await _postRepository.GetRecipeDetailsByIdAsync(id, loggedInUserId);
             if (recipeDetails == null)
             {
                 return NotFound(new ResponseResult<RecipeDetailsModel>
@@ -213,22 +213,7 @@ namespace CookMateBackend.Controllers
         [Route("getRecipeFeedForUser")]
         public async Task<ActionResult<ResponseResult<List<RecipeDto>>>> GetRecipeFeedForUser(int userId)
         {
-            // Call the repository method and expect a ResponseResult directly
-            ResponseResult<List<RecipeDto>> responseResult = await _postRepository.GetRecipeFeedForUserAsync(userId);
-
-            // Check if the result is successful and has content
-            if (responseResult == null || responseResult.Result == null || !responseResult.Result.Any())
-            {
-                return NotFound(new ResponseResult<List<RecipeDto>>
-                {
-                    IsSuccess = false,
-                    Message = "No recipes found in the feed.",
-                    Result = null
-                });
-            }
-
-            // If successful and contains recipes, return the whole ResponseResult
-            return Ok(responseResult);
+            return await _postRepository.GetRecipeFeedForUserAsync(userId);
         }
         
         [HttpGet]
@@ -236,21 +221,7 @@ namespace CookMateBackend.Controllers
         public async Task<ActionResult<ResponseResult<List<MediaDto>>>> GetMediaFeedForUser(int userId)
         {
             // Call the repository method and expect a ResponseResult directly
-            ResponseResult<List<MediaDto>> responseResult = await _postRepository.GetMediaFeedForUserAsync(userId);
-
-            // Check if the result is successful and has content
-            if (responseResult == null || responseResult.Result == null || !responseResult.Result.Any())
-            {
-                return NotFound(new ResponseResult<List<MediaDto>>
-                {
-                    IsSuccess = false,
-                    Message = "No media found in the feed.",
-                    Result = null
-                });
-            }
-
-            // If successful and contains recipes, return the whole ResponseResult
-            return Ok(responseResult);
+            return await _postRepository.GetMediaFeedForUserAsync(userId);
         }
 
 

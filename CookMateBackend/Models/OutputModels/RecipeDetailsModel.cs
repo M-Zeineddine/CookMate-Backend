@@ -7,9 +7,13 @@
         public string? Description { get; set; }
         public string? PreparationTime { get; set; }
         public string? Media { get; set; }
+        public bool IsCreatedByUser { get; set; } // New property
+
         public UserModel? User { get; set; }
         public List<Procedure>? Procedures { get; set; }
         public List<IngredientDto>? Ingredients { get; set; }
+        public List<TagDto>? Tags { get; set; }
+
 
     }
 
@@ -21,6 +25,11 @@
         public string? MediaUrl { get; set; } // The URL to the media of the ingredient.
     }
 
-
+    public class TagDto
+    {
+        public int? Id { get; set; }
+        public string? Name { get; set; }
+        // Add additional properties as needed
+    }
 
 }

@@ -19,61 +19,95 @@ namespace CookMateBackend.Data.Repositories
             _CookMateContext = cookMateContext;
         }
 
-        public async Task<List<FollowerInfo>> GetMyFollowersWithStatusAsync(int loggedInUserId, string search = null)
+        public async Task<ResponseResult<List<FollowerInfo>>> GetMyFollowersWithStatusAsync(int loggedInUserId, string search = null)
         {
-            var followersQuery = _CookMateContext.Followers
-                .Where(f => f.UserId == loggedInUserId)
-                .Select(f => new { f.FollowerNavigation, IsFollowingBack = _CookMateContext.Followers.Any(fb => fb.UserId == f.FollowerId && fb.FollowerId == loggedInUserId) });
-
-            if (!string.IsNullOrEmpty(search))
+            try
             {
-                followersQuery = followersQuery.Where(f => f.FollowerNavigation.Username.Contains(search));
-            }
+                var followersQuery = _CookMateContext.Followers
+                    .Where(f => f.UserId == loggedInUserId)
+                    .Select(f => new { f.FollowerNavigation, IsFollowingBack = _CookMateContext.Followers.Any(fb => fb.UserId == f.FollowerId && fb.FollowerId == loggedInUserId) });
 
-            var followers = await followersQuery
-                .Select(f => new FollowerInfo
+                if (!string.IsNullOrEmpty(search))
                 {
-                    FollowerId = f.FollowerNavigation.Id,
-                    FollowerName = f.FollowerNavigation.Username,
-                    IsFollowingBack = f.IsFollowingBack
-                })
-                .ToListAsync();
+                    followersQuery = followersQuery.Where(f => f.FollowerNavigation.Username.Contains(search));
+                }
 
-            return followers;
+                var followers = await followersQuery
+                    .Select(f => new FollowerInfo
+                    {
+                        FollowerId = f.FollowerNavigation.Id,
+                        FollowerName = f.FollowerNavigation.Username,
+                        IsFollowingBack = f.IsFollowingBack
+                    })
+                    .ToListAsync();
+
+                return new ResponseResult<List<FollowerInfo>>
+                {
+                    IsSuccess = true,
+                    Message = "Followers retrieved successfully.",
+                    Result = followers
+                };
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception as needed (e.g., logging)
+                return new ResponseResult<List<FollowerInfo>>
+                {
+                    IsSuccess = false,
+                    Message = $"Error retrieving followers: {ex.Message}",
+                    Result = null
+                };
+            }
         }
 
 
-        public async Task<List<FollowerInfo>> GetMyFollowingsWithStatusAsync(int loggedInUserId, string search = null)
+
+        public async Task<ResponseResult<List<FollowerInfo>>> GetMyFollowingsWithStatusAsync(int loggedInUserId, string search = null)
         {
-            // Query to get the list of users that the logged-in user is following
-            var followingsQuery = _CookMateContext.Followers
-                .Where(f => f.FollowerId == loggedInUserId)
-                .Select(f => new
-                {
-                    FollowingId = f.UserId,
-                    FollowingUsername = f.User.Username, // Assuming f.User navigates to the followed user entity
-                                                         // Check if the following user is also following back the logged-in user
-                    IsFollowingBack = _CookMateContext.Followers.Any(fb => fb.UserId == loggedInUserId && fb.FollowerId == f.UserId)
-                });
-
-            // If a search term is provided, filter the followings by the username
-            if (!string.IsNullOrEmpty(search))
+            try
             {
-                followingsQuery = followingsQuery.Where(f => f.FollowingUsername.Contains(search));
-            }
+                var followingsQuery = _CookMateContext.Followers
+                    .Where(f => f.FollowerId == loggedInUserId)
+                    .Select(f => new
+                    {
+                        FollowingId = f.UserId,
+                        FollowingUsername = f.User.Username,
+                        IsFollowingBack = _CookMateContext.Followers.Any(fb => fb.UserId == loggedInUserId && fb.FollowerId == f.UserId)
+                    });
 
-            // Execute the query and project the result into FollowingInfo objects
-            var followings = await followingsQuery
-                .Select(f => new FollowerInfo
+                if (!string.IsNullOrEmpty(search))
                 {
-                    FollowerId = f.FollowingId,
-                    FollowerName = f.FollowingUsername,
-                    IsFollowingBack = f.IsFollowingBack
-                })
-                .ToListAsync();
+                    followingsQuery = followingsQuery.Where(f => f.FollowingUsername.Contains(search));
+                }
 
-            return followings;
+                var followings = await followingsQuery
+                    .Select(f => new FollowerInfo
+                    {
+                        FollowerId = f.FollowingId,
+                        FollowerName = f.FollowingUsername,
+                        IsFollowingBack = f.IsFollowingBack
+                    })
+                    .ToListAsync();
+
+                return new ResponseResult<List<FollowerInfo>>
+                {
+                    IsSuccess = true,
+                    Message = "Followings retrieved successfully.",
+                    Result = followings
+                };
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception as needed
+                return new ResponseResult<List<FollowerInfo>>
+                {
+                    IsSuccess = false,
+                    Message = $"Error retrieving followings: {ex.Message}",
+                    Result = null
+                };
+            }
         }
+
 
 
 
