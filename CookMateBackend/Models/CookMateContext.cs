@@ -55,6 +55,8 @@ public partial class CookMateContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserPreferencesTag> UserPreferencesTags { get; set; }
+    public virtual DbSet<MediaComment> MediaComments { get; set; }
+
 
 
     //OutputModels
@@ -508,6 +510,40 @@ public partial class CookMateContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("username");
         });
+
+        modelBuilder.Entity<MediaComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_media_comment_id");
+
+            entity.ToTable("media_comment");
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+            entity.Property(e => e.Comment)
+                .IsRequired()
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("comment");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.MediaId).HasColumnName("media_id");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(d => d.Media)
+                .WithMany(p => p.MediaComments)
+                .HasForeignKey(d => d.MediaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_media_comment_media_id");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.MediaComments)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_media_comment_user_id");
+        });
+
 
         modelBuilder.Entity<UserPreferencesTag>(entity =>
         {

@@ -24,7 +24,7 @@ namespace CookMateBackend.Controllers
 
         [HttpPost]
         [Route("toggleFavorite")]
-        public async Task<ResponseResult<Favorite>> ToggleFavorite([FromBody] FavoriteModel favoriteModel)
+        public async Task<ResponseResult<bool>> ToggleFavorite([FromBody] FavoriteModel favoriteModel)
         {
             return await _favoriteRepository.ToggleFavorite(favoriteModel);
         }

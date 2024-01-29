@@ -15,6 +15,7 @@ namespace CookMateBackend.Data.Repositories
         {
             _context = cookMateContext;
         }
+        public string baseUrl = "http://mz9436-001-site1.ctempurl.com/";
 
         public async Task<ResponseResult<bool>> AddReviewAsync(CreateReviewModel reviewDto)
         {
@@ -130,6 +131,127 @@ namespace CookMateBackend.Data.Repositories
             result.IsSuccess = true;
             result.Message = "Review removed successfully.";
             result.Result = true;
+
+            return result;
+        }
+
+
+        public async Task<ResponseResult<bool>> AddRecipeViewAsync(CreateRecipeViewModel viewModel)
+        {
+            var result = new ResponseResult<bool>();
+
+            // First, check if the recipe's corresponding post belongs to the user
+            var isUserRecipe = await _context.Posts
+                .AnyAsync(p => p.RecipeId == viewModel.recipeId && p.UserId == viewModel.userId && p.Type == 1);
+            if (isUserRecipe)
+            {
+                result.IsSuccess = true;
+                result.Result = false; // The user is viewing their own recipe
+                result.Message = "User's own recipe view is not counted.";
+                return result;
+            }
+
+            // Insert a record into interaction_history
+            var interaction = new InteractionHistory
+            {
+                UserId = viewModel.userId,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.InteractionHistories.Add(interaction);
+            await _context.SaveChangesAsync();
+
+            // Now insert a record into recipe_views with the new interaction_id
+            var recipeView = new RecipeView
+            {
+                InteractionId = interaction.InteractionId, // Use the newly created ID
+                RecipeId = viewModel.recipeId,
+                ViewedAt = DateTime.UtcNow
+            };
+            _context.RecipeViews.Add(recipeView);
+            await _context.SaveChangesAsync();
+
+            result.IsSuccess = true;
+            result.Result = true; // The view was successfully added
+            result.Message = "Recipe view added successfully.";
+
+            return result;
+        }
+
+        public async Task<ResponseResult<List<RecipeDto>>> GetTopRatedRecipesAsync(int count)
+        {
+            string recipeMediaPath = "uploads/recipes/";
+
+            var result = new ResponseResult<List<RecipeDto>>();
+            try
+            {
+                var topRatedRecipes = await _context.Recipes
+                    .Where(r => r.Reviews.Any())  // Ensure that the recipe has at least one review
+                    .Select(r => new
+                    {
+                        Recipe = r,
+                        AverageRating = r.Reviews.Average(rv => (double?)rv.Rating),
+                        TotalRatings = r.Reviews.Count()
+                    })
+                    .OrderByDescending(r => r.AverageRating)
+                    .ThenByDescending(r => r.TotalRatings) // In case of tie in ratings, sort by the number of ratings
+                    .Take(count)
+                    .Select(r => new RecipeDto
+                    {
+                        Id = r.Recipe.Id,
+                        Name = r.Recipe.Name,
+                        Description = r.Recipe.Description,
+                        Media = r.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{r.Recipe.Media}" : null,
+                        PreparationTime = r.Recipe.PreperationTime,
+                        AverageRating = r.Recipe.Reviews.Any() ? r.Recipe.Reviews.Average(r => r.Rating) : 0 // Calculate average rating
+                    })
+                    .ToListAsync();
+
+                result.IsSuccess = true;
+                result.Message = "Top rated recipes fetched";
+                result.Result = topRatedRecipes;
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+
+        public async Task<ResponseResult<List<RecentViewDto>>> GetRecentViewsByUserAsync(int userId)
+        {
+            string recipeMediaPath = "uploads/recipes/";
+
+            var result = new ResponseResult<List<RecentViewDto>>();
+            try
+            {
+                var recentViews = await _context.InteractionHistories
+                    .Where(ih => ih.UserId == userId)
+                    .Join(_context.RecipeViews, ih => ih.InteractionId, rv => rv.InteractionId, (ih, rv) => new { ih, rv })
+                    .Join(_context.Recipes, combined => combined.rv.RecipeId, r => r.Id, (combined, r) => new { combined.ih, combined.rv, r })
+                    .OrderByDescending(combined => combined.rv.ViewedAt)
+                    .Select(combined => new RecentViewDto
+                    {
+                        RecipeId = combined.r.Id,
+                        RecipeName = combined.r.Name,
+                        ViewedAt = (DateTime)combined.rv.ViewedAt,
+                        Media = combined.r.Media != null ? $"{baseUrl}{recipeMediaPath}{combined.r.Media}" : null,
+                        PreparationTime = combined.r.PreperationTime,
+                        AverageRating = combined.r.Reviews.Any() ? combined.r.Reviews.Average(r => r.Rating) : 0 // Calculate average rating
+                    })
+                    .ToListAsync();
+
+                result.IsSuccess = true;
+                result.Message = "Recently viewed recipes fetched";
+                result.Result = recentViews;
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = ex.Message;
+            }
 
             return result;
         }

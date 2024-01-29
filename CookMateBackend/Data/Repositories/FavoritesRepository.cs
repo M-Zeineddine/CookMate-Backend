@@ -17,22 +17,25 @@ namespace CookMateBackend.Data.Repositories
             _context = context;
         }
 
-        public async Task<ResponseResult<Favorite>> ToggleFavorite(FavoriteModel favoriteModel)
+        public async Task<ResponseResult<bool>> ToggleFavorite(FavoriteModel favoriteModel)
         {
-            var result = new ResponseResult<Favorite>();
+            var result = new ResponseResult<bool>();
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    Post? post = null;
-                    if (favoriteModel.RecipeId != 0)
+                    // Check if the favorite is for a recipe or media and get the corresponding post
+                    var postQuery = _context.Posts.AsQueryable();
+                    if (favoriteModel.RecipeId.HasValue)
                     {
-                        post = await _context.Posts.FirstOrDefaultAsync(p => p.RecipeId == favoriteModel.RecipeId && p.Type == 1);
+                        postQuery = postQuery.Where(p => p.RecipeId == favoriteModel.RecipeId.Value && p.Type == 1);
                     }
-                    else if (favoriteModel.MediaId != 0)
+                    else if (favoriteModel.MediaId.HasValue)
                     {
-                        post = await _context.Posts.FirstOrDefaultAsync(p => p.MediaId == favoriteModel.MediaId && p.Type == 2);
+                        postQuery = postQuery.Where(p => p.MediaId == favoriteModel.MediaId.Value && p.Type == 2);
                     }
+
+                    var post = await postQuery.FirstOrDefaultAsync();
 
                     if (post == null)
                     {
@@ -41,28 +44,45 @@ namespace CookMateBackend.Data.Repositories
                         return result;
                     }
 
+                    // Check if the post is already favorited by the user
                     var favorite = await _context.Favorites.FirstOrDefaultAsync(f => f.UserId == favoriteModel.UserId && f.PostId == post.Id);
 
                     if (favorite != null)
                     {
+                        // Remove the favorite and the corresponding like
+                        var like = await _context.RecipeLikes
+                            .Include(l => l.Interaction) // Eagerly load the Interaction
+                            .FirstOrDefaultAsync(l => l.Interaction.UserId == favoriteModel.UserId && l.RecipeId == post.RecipeId);
+
+                        if (like != null)
+                        {
+                            _context.RecipeLikes.Remove(like);
+                            // Now we can be sure that like.Interaction is not null
+                            _context.InteractionHistories.Remove(like.Interaction);
+                        }
+
                         _context.Favorites.Remove(favorite);
-                        result.Message = "Removed from favorites";
+                        result.Message = "Removed from favorites and likes.";
                     }
                     else
                     {
-                        Favorite newFavorite = new Favorite
-                        {
-                            UserId = favoriteModel.UserId,
-                            PostId = post.Id
-                        };
-                        _context.Favorites.Add(newFavorite);
-                        result.Result = newFavorite;
-                        result.Message = "Added to favorites";
+                        // Add the favorite and the corresponding like
+                        var interaction = new InteractionHistory { UserId = favoriteModel.UserId, CreatedAt = DateTime.UtcNow };
+                        _context.InteractionHistories.Add(interaction);
+                        await _context.SaveChangesAsync();  // Save to get the InteractionId for the like
+
+                        favorite = new Favorite { UserId = favoriteModel.UserId, PostId = post.Id };
+                        _context.Favorites.Add(favorite);
+
+                        var newLike = new RecipeLike { InteractionId = interaction.InteractionId, RecipeId = post.RecipeId.Value, LikedAt = DateTime.UtcNow };
+                        _context.RecipeLikes.Add(newLike);
+                        result.Message = "Added to favorites and likes.";
                     }
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     result.IsSuccess = true;
+                    result.Result = true;
                 }
                 catch (Exception ex)
                 {
@@ -75,10 +95,7 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
-
-
-
-        private async Task<int?> GetPostIdFromMediaOrRecipe(int? mediaId, int? recipeId)
+        /*private async Task<int?> GetPostIdFromMediaOrRecipe(int? mediaId, int? recipeId)
         {
             if (mediaId.HasValue)
             {
@@ -92,7 +109,7 @@ namespace CookMateBackend.Data.Repositories
             }
 
             return null; // No valid ID provided
-        }
+        }*/
 
 
         public async Task<ResponseResult<List<UserPostsModel>>> GetFavorites(int userId, string favoriteType = null)

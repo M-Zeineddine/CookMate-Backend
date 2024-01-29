@@ -20,4 +20,6 @@ public partial class Media
     public int? RecipeId { get; set; }
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
     public virtual Recipe? Recipe { get; set; }
+    public virtual ICollection<MediaComment> MediaComments { get; set; }
+
 }

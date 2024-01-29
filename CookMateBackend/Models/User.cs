@@ -34,4 +34,6 @@ public partial class User
     public virtual ICollection<SearchHistory> SearchHistories { get; set; } = new List<SearchHistory>();
 
     public virtual ICollection<UserPreferencesTag> UserPreferencesTags { get; set; } = new List<UserPreferencesTag>();
+    public virtual ICollection<MediaComment> MediaComments { get; set; }
+
 }

@@ -64,6 +64,7 @@ builder.Services.AddScoped<IProcedureRepository, ProcedureRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IFavoritesRepository, FavoriteRepository>();
 builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
+builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
