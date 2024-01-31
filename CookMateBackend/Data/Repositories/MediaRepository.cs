@@ -54,6 +54,7 @@ namespace CookMateBackend.Data.Repositories
             var result = new ResponseResult<List<MediaCommentDto>>();
             try
             {
+                var totalComments = await _context.MediaComments.CountAsync(c => c.MediaId == mediaId);
                 var comments = await _context.MediaComments
                     .Where(c => c.MediaId == mediaId)
                     .Select(c => new MediaCommentDto
@@ -61,6 +62,7 @@ namespace CookMateBackend.Data.Repositories
                         Id = c.Id,
                         Comment = c.Comment,
                         CreatedAt = c.CreatedAt,
+                        TotalComments = totalComments,
                         User = new UserModel
                         {
                             Id = c.User.Id,

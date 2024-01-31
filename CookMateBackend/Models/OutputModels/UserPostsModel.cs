@@ -31,6 +31,7 @@
         public int? Likes { get; set; }
         public DateTime? CreatedAt { get; set;}
         public int? FavoritesCount { get; set; } // New property to hold the count of favorites
+        public int? CommentsCount { get; set; } // New property to hold the count of favorites
 
         public RecipeReferenceDto? RecipeReference { get; set; }
         public UserModel? User { get; set; }

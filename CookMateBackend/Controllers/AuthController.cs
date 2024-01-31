@@ -1,6 +1,7 @@
 ﻿using CookMateBackend.Data.Interfaces;
 using CookMateBackend.Data.Repositories;
 using CookMateBackend.Models.InputModels;
+using CookMateBackend.Models.ResponseResults;
 using CookMateBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,44 +35,56 @@ namespace CookMateBackend.Controllers
 
 
         [HttpPost("Login")]
-        public ActionResult<string> Login(LoginModel userModel)
+        public ActionResult<ResponseResult<string>> Login(LoginModel userModel)
         {
+            var response = new ResponseResult<string>();
+
             try
             {
                 if (ModelState.IsValid)
                 {
                     if (string.IsNullOrEmpty(userModel.Username))
                     {
-                        return BadRequest("Username is required");
+                        response.IsSuccess = false;
+                        response.Message = "Username is required";
+                        return new ActionResult<ResponseResult<string>>(response);
                     }
 
                     if (string.IsNullOrEmpty(userModel.Password))
                     {
-                        return BadRequest("Password is required");
+                        response.IsSuccess = false;
+                        response.Message = "Password is required";
+                        return new ActionResult<ResponseResult<string>>(response);
                     }
-
 
                     if (_authService.IsAuthenticated(userModel.Username, userModel.Password))
                     {
                         var user = _authService.GetUserByUsername(userModel.Username);
                         var token = _authService.GenerateJwtToken(user);
 
-
-                        //return Ok(user.Username + " is now connected");  //returns rayba123 is now conected
-                        return Ok(token);
+                        response.IsSuccess = true;
+                        response.Result = token;
+                        return new ActionResult<ResponseResult<string>>(response);
                     }
 
-                    return BadRequest("Username or password are not correct!");
+                    response.IsSuccess = false;
+                    response.Message = "Username or password are not correct!";
+                    return new ActionResult<ResponseResult<string>>(response);
                 }
 
-                return BadRequest(ModelState);
-
+                response.IsSuccess = false;
+                response.Message = "Invalid model state";
+                return new ActionResult<ResponseResult<string>>(response);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500);
+                response.IsSuccess = false;
+                response.Message = $"Internal server error: {ex.Message}";
+                return new ActionResult<ResponseResult<string>>(response);
             }
         }
+
+
 
     }
 }

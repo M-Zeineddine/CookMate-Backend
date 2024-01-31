@@ -234,6 +234,7 @@ namespace CookMateBackend.Data.Repositories
                     PreparationTime = r.PreperationTime,
                     Media = !string.IsNullOrEmpty(r.Media) ? $"{baseUrl}{recipeMediaPath}{r.Media}" : null,
                     IsCreatedByUser = r.Posts.Any(p => p.UserId == loggedInUserId && p.RecipeId == r.Id),
+                    ViewCount = r.RecipeViews.Count(),
                     Procedures = r.Procedures.Select(p => new Procedure
                     {
                         Id = p.Id,
@@ -514,6 +515,7 @@ namespace CookMateBackend.Data.Repositories
                                          : null
                         },
                         FavoritesCount = _CookMateContext.Favorites.Count(f => f.PostId == p.Id), // Count the favorites for this post
+                        CommentsCount = _CookMateContext.MediaComments.Count(mc => mc.MediaId == p.Media.Id), // Count the comments for this media
                         RecipeReference = p.Media.RecipeId.HasValue ? new RecipeReferenceDto
                         {
                             Id = p.Media.RecipeId.Value,

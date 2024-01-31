@@ -8,7 +8,7 @@
         public string? PreparationTime { get; set; }
         public string? Media { get; set; }
         public bool IsCreatedByUser { get; set; } // New property
-
+        public int ViewCount { get; set; }
         public UserModel? User { get; set; }
         public List<Procedure>? Procedures { get; set; }
         public List<IngredientDto>? Ingredients { get; set; }

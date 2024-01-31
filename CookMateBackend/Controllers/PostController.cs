@@ -220,36 +220,8 @@ namespace CookMateBackend.Controllers
         [Route("getMediaFeedForUser")]
         public async Task<ActionResult<ResponseResult<List<MediaDto>>>> GetMediaFeedForUser(int userId)
         {
-            // Call the repository method and expect a ResponseResult directly
             return await _postRepository.GetMediaFeedForUserAsync(userId);
         }
-
-
-        [HttpPost("toggle-like")]
-        public async Task<ActionResult<ResponseResult<bool>>> ToggleLike([FromBody] ToggleLikeModel request)
-        {
-            var result = new ResponseResult<bool>();
-
-            try
-            {
-                var success = await _postRepository.UpdateMediaLikesAsync(request.MediaId, request.AddLike);
-                result.IsSuccess = success;
-                result.Message = success ? "Media like status updated successfully." : "Failed to update media like status.";
-                result.Result = success;
-
-                return Ok(result);
-            }
-            catch (Exception)
-            {
-                return NotFound(new ResponseResult<bool>
-                {
-                    IsSuccess = false,
-                    Message = "No media found in the feed.",
-                    Result = false
-                });
-            }
-        }
-
 
         [HttpGet]
         [Route("searchRecipes")]

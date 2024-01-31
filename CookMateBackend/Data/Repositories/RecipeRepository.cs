@@ -151,6 +151,21 @@ namespace CookMateBackend.Data.Repositories
                 return result;
             }
 
+            // Check if the user has viewed the recipe in the last 30 seconds
+            var recentView = await _context.RecipeViews
+                .OrderByDescending(rv => rv.ViewedAt)
+                .FirstOrDefaultAsync(rv => rv.RecipeId == viewModel.recipeId
+                                           && rv.Interaction.UserId == viewModel.userId
+                                           && rv.ViewedAt > DateTime.UtcNow.AddSeconds(-30));
+
+            if (recentView != null)
+            {
+                result.IsSuccess = true;
+                result.Result = false; // The view is not added because it's too soon
+                result.Message = "This recipe has been viewed recently.";
+                return result;
+            }
+
             // Insert a record into interaction_history
             var interaction = new InteractionHistory
             {
@@ -176,6 +191,7 @@ namespace CookMateBackend.Data.Repositories
 
             return result;
         }
+
 
         public async Task<ResponseResult<List<RecipeDto>>> GetTopRatedRecipesAsync(int count)
         {
@@ -227,19 +243,28 @@ namespace CookMateBackend.Data.Repositories
             var result = new ResponseResult<List<RecentViewDto>>();
             try
             {
-                var recentViews = await _context.InteractionHistories
-                    .Where(ih => ih.UserId == userId)
-                    .Join(_context.RecipeViews, ih => ih.InteractionId, rv => rv.InteractionId, (ih, rv) => new { ih, rv })
-                    .Join(_context.Recipes, combined => combined.rv.RecipeId, r => r.Id, (combined, r) => new { combined.ih, combined.rv, r })
-                    .OrderByDescending(combined => combined.rv.ViewedAt)
-                    .Select(combined => new RecentViewDto
+                // First, get the most recent view date for each recipe
+                var mostRecentViewPerRecipe = _context.RecipeViews
+                    .Where(rv => rv.Interaction.UserId == userId)
+                    .GroupBy(rv => rv.RecipeId)
+                    .Select(g => new
                     {
-                        RecipeId = combined.r.Id,
-                        RecipeName = combined.r.Name,
-                        ViewedAt = (DateTime)combined.rv.ViewedAt,
-                        Media = combined.r.Media != null ? $"{baseUrl}{recipeMediaPath}{combined.r.Media}" : null,
-                        PreparationTime = combined.r.PreperationTime,
-                        AverageRating = combined.r.Reviews.Any() ? combined.r.Reviews.Average(r => r.Rating) : 0 // Calculate average rating
+                        RecipeId = g.Key,
+                        MostRecentViewAt = g.Max(rv => rv.ViewedAt)
+                    });
+
+                var recentViews = await mostRecentViewPerRecipe
+                    .Join(_context.Recipes, mr => mr.RecipeId, r => r.Id, (mr, r) => new { mr, r })
+                    .OrderByDescending(joined => joined.mr.MostRecentViewAt)
+                    .Take(5) // Take the last 5 distinct views
+                    .Select(joined => new RecentViewDto
+                    {
+                        RecipeId = joined.r.Id,
+                        RecipeName = joined.r.Name,
+                        ViewedAt = (DateTime)joined.mr.MostRecentViewAt,
+                        Media = joined.r.Media != null ? $"{baseUrl}{recipeMediaPath}{joined.r.Media}" : null,
+                        PreparationTime = joined.r.PreperationTime,
+                        AverageRating = joined.r.Reviews.Any() ? joined.r.Reviews.Average(rv => rv.Rating) : 0 // Calculate average rating
                     })
                     .ToListAsync();
 
@@ -255,6 +280,7 @@ namespace CookMateBackend.Data.Repositories
 
             return result;
         }
+
 
     }
 }

@@ -28,12 +28,13 @@ namespace CookMateBackend.Data.Repositories
                     var postQuery = _context.Posts.AsQueryable();
                     if (favoriteModel.RecipeId.HasValue)
                     {
-                        postQuery = postQuery.Where(p => p.RecipeId == favoriteModel.RecipeId.Value && p.Type == 1);
+                        postQuery = postQuery.Where(p => p.RecipeId == favoriteModel.RecipeId.Value && p.Type == 1); // Access .Value here because HasValue is true
                     }
                     else if (favoriteModel.MediaId.HasValue)
                     {
-                        postQuery = postQuery.Where(p => p.MediaId == favoriteModel.MediaId.Value && p.Type == 2);
+                        postQuery = postQuery.Where(p => p.MediaId == favoriteModel.MediaId.Value && p.Type == 2); // Access .Value here because HasValue is true
                     }
+
 
                     var post = await postQuery.FirstOrDefaultAsync();
 
@@ -74,9 +75,17 @@ namespace CookMateBackend.Data.Repositories
                         favorite = new Favorite { UserId = favoriteModel.UserId, PostId = post.Id };
                         _context.Favorites.Add(favorite);
 
-                        var newLike = new RecipeLike { InteractionId = interaction.InteractionId, RecipeId = post.RecipeId.Value, LikedAt = DateTime.UtcNow };
-                        _context.RecipeLikes.Add(newLike);
-                        result.Message = "Added to favorites and likes.";
+                        if (post.RecipeId.HasValue)
+                        {
+                            var newLike = new RecipeLike
+                            {
+                                InteractionId = interaction.InteractionId,
+                                RecipeId = post.RecipeId.Value, // Safe to use .Value because we checked HasValue above
+                                LikedAt = DateTime.UtcNow
+                            };
+                            _context.RecipeLikes.Add(newLike);
+                        }
+                        result.Message = "Added to favorites";
                     }
 
                     await _context.SaveChangesAsync();
