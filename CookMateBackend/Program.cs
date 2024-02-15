@@ -66,6 +66,8 @@ builder.Services.AddScoped<IFavoritesRepository, FavoriteRepository>();
 builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 
+builder.Services.AddHttpClient();
+
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     // Disables automatic 400 response

@@ -55,11 +55,26 @@ namespace CookMateBackend.Controllers
         }
 
         [HttpGet]
+        [Route("topFavorited")]
+        public async Task<ResponseResult<List<RecipeDto>>> GetTopFavoritedRecipes([FromQuery] int count = 10)
+        {
+            return await _recipeRepository.GetTopFavoritedRecipesAsync(count);
+        }
+
+        [HttpGet]
         [Route("recentViews")]
         public async Task<ResponseResult<List<RecentViewDto>>> GetRecentViews(int userId)
         {
             return await _recipeRepository.GetRecentViewsByUserAsync(userId);
         }
+        
+        [HttpPost]
+        [Route("searchRecipesByIngredients")]
+        public async Task<ResponseResult<List<RecipeDto>>> SearchRecipesByIngredients(List<int> ingredientIds)
+        {
+            return await _recipeRepository.SearchRecipesByIngredientsAsync(ingredientIds);
+        }
+
 
     }
 }

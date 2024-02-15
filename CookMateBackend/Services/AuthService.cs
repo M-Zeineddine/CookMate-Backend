@@ -81,18 +81,19 @@ namespace CookMateBackend.Services
 
         public string GenerateJwtToken(User user)
         {
-
             var jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
-            var tokenValidity = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JwtSettings:TokenValidity"]));
-            var tokenKey = Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]);
 
+            // Ensure the token validity is correctly calculated
+            var tokenValidity = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configuration["JwtSettings:TokenValidity"]));
+
+            var tokenKey = Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]);
 
             var claims = new List<Claim>
             {
                 new Claim("TokenGUID", Guid.NewGuid().ToString()),
                 new Claim("UserId", user.Id.ToString()),
                 new Claim("Username", user.Username),
-                /*new Claim("Role", user.Role.ToString())*/
+                // Uncomment if needed: new Claim("Role", user.Role.ToString())
             };
 
             var securityTokenDescriptor = new SecurityTokenDescriptor
@@ -107,8 +108,12 @@ namespace CookMateBackend.Services
             var securityToken = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
             var token = jwtSecurityTokenHandler.WriteToken(securityToken);
 
+            // Logging to see the actual values
+            Console.WriteLine($"Token generated with Expires: {securityTokenDescriptor.Expires}, NotBefore: {securityTokenDescriptor.NotBefore}");
+
             return token;
         }
+
 
         public bool IsAuthenticated(string username, string password)
         {

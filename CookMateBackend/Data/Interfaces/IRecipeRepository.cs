@@ -12,6 +12,8 @@ namespace CookMateBackend.Data.Interfaces
         Task<ResponseResult<bool>> RemoveReviewAsync(int reviewId, int userId);
         Task<ResponseResult<bool>> AddRecipeViewAsync(CreateRecipeViewModel viewModel);
         Task<ResponseResult<List<RecipeDto>>> GetTopRatedRecipesAsync(int count);
+        Task<ResponseResult<List<RecipeDto>>> GetTopFavoritedRecipesAsync(int count);
         Task<ResponseResult<List<RecentViewDto>>> GetRecentViewsByUserAsync(int userId);
+        Task<ResponseResult<List<RecipeDto>>> SearchRecipesByIngredientsAsync(List<int> ingredientIds);
     }
 }

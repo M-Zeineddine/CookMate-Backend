@@ -5,6 +5,7 @@ using CookMateBackend.Models.OutputModels;
 using CookMateBackend.Models.ResponseResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace CookMateBackend.Controllers
 {
@@ -14,12 +15,16 @@ namespace CookMateBackend.Controllers
     {
         public readonly CookMateContext _context;
         private readonly IIngredientRepository _ingredientRepository;
+        private readonly IHttpClientFactory _clientFactory;
+        private const string PrebuiltApiBaseUrl = "https://detect.roboflow.com/dataset/v"; // Your actual endpoint URL
+        private const string ApiKey = "rf_qVki7m22evXquR3oQ7tYuki9MHn2"; // Your publishable API key
 
 
-        public IngredientController(CookMateContext cookMateContext, IIngredientRepository ingredientRepository)
+        public IngredientController(CookMateContext cookMateContext, IIngredientRepository ingredientRepository, IHttpClientFactory clientFactory)
         {
             _context = cookMateContext;
             _ingredientRepository = ingredientRepository;
+            _clientFactory = clientFactory;
         }
 
         [HttpPost("add-ingredient")]
@@ -97,13 +102,56 @@ namespace CookMateBackend.Controllers
         {
             return await _ingredientRepository.GetSubstitutesAsync(ingredientId);
         }
-
-        /*[HttpPost("{ingredientId}/substitutes")]
-        public async Task<ActionResult<ResponseResult<SubstituteDto>>> AddSubstitute(int ingredientId, int substituteId)
+        
+        [HttpGet("substitutess")]
+        public async Task<ActionResult<ResponseResult<List<SubstituteDto>>>> GetSubstitutess(int ingredientId)
         {
-            return await _ingredientRepository.AddSubstituteAsync(ingredientId, substituteId);
-        }*/
+            return await _ingredientRepository.GetSubstitutesAsync(ingredientId);
+        }
 
+/*        [HttpPost]
+        [Route("upload")]
+        public ResponseResult<List<DetectionModel>> ProcessApiResponse(string apiResponse)
+        {
+            try
+            {
+                // Parse the JSON response
+                var jsonResponse = JsonConvert.DeserializeObject<dynamic>(apiResponse);
+
+                // Extract the predictions list
+                var predictions = jsonResponse.predictions;
+
+                // Create a list to hold the important data
+                var detections = new List<DetectionModel>();
+
+                foreach (var prediction in predictions)
+                {
+                    detections.Add(new DetectionModel
+                    {
+                        Class = prediction.@class,
+                        Confidence = (double)prediction.confidence,
+                        DetectionId = prediction.detection_id
+                    });
+                }
+
+                // Return the response wrapped in ResponseResult
+                return new ResponseResult<List<DetectionModel>>
+                {
+                    IsSuccess = true,
+                    Message = "Predictions processed successfully.",
+                    Result = detections
+                };
+            }
+            catch (Exception ex)
+            {
+                // Return an error message if something goes wrong
+                return new ResponseResult<List<DetectionModel>>
+                {
+                    IsSuccess = false,
+                    Message = $"An error occurred while processing the predictions: {ex.Message}"
+                };
+            }
+        }*/
 
     }
 }

@@ -11,4 +11,6 @@ public partial class Ingredient
     public string? Media { get; set; }
 
     public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
+
+
 }

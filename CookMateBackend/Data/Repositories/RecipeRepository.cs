@@ -3,6 +3,7 @@ using CookMateBackend.Models;
 using CookMateBackend.Models.InputModels;
 using CookMateBackend.Models.OutputModels;
 using CookMateBackend.Models.ResponseResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CookMateBackend.Data.Repositories
@@ -236,6 +237,48 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
+        public async Task<ResponseResult<List<RecipeDto>>> GetTopFavoritedRecipesAsync(int count)
+        {
+            string recipeMediaPath = "uploads/recipes/";
+
+            var result = new ResponseResult<List<RecipeDto>>();
+            try
+            {
+                var topFavoritedRecipes = await _context.Posts
+                    .Where(p => p.Type == 1) // Filter for posts that are recipes
+                    .GroupJoin(_context.Favorites, // Join with favorites
+                        post => post.Id,
+                        favorite => favorite.PostId,
+                        (post, favorites) => new { Post = post, FavoritesCount = favorites.Count() })
+                    .OrderByDescending(pf => pf.FavoritesCount) // Order by the number of favorites
+                    .Take(count)
+                    .Select(pf => new RecipeDto
+                    {
+                        Id = pf.Post.Recipe.Id,
+                        Name = pf.Post.Recipe.Name,
+                        Description = pf.Post.Recipe.Description,
+                        Media = pf.Post.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{pf.Post.Recipe.Media}" : null,
+                        PreparationTime = pf.Post.Recipe.PreperationTime,
+                        AverageRating = pf.Post.Recipe.Reviews.Any() ? pf.Post.Recipe.Reviews.Average(r => r.Rating) : 0, // Calculate average rating
+                                                                                                                          // Add more properties as needed
+                    })
+                    .ToListAsync();
+
+                result.IsSuccess = true;
+                result.Message = "Top favorited recipes fetched";
+                result.Result = topFavoritedRecipes;
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+
+
         public async Task<ResponseResult<List<RecentViewDto>>> GetRecentViewsByUserAsync(int userId)
         {
             string recipeMediaPath = "uploads/recipes/";
@@ -280,6 +323,67 @@ namespace CookMateBackend.Data.Repositories
 
             return result;
         }
+
+
+        public async Task<ResponseResult<List<RecipeDto>>> SearchRecipesByIngredientsAsync(List<int> ingredientIds)
+        {
+            string recipeMediaPath = "uploads/recipes/";
+
+            // Return an error response if no ingredient IDs are provided
+            if (ingredientIds == null || !ingredientIds.Any())
+            {
+                return new ResponseResult<List<RecipeDto>>
+                {
+                    IsSuccess = false,
+                    Message = "No ingredient IDs provided.",
+                    Result = null
+                }; 
+            }
+
+            try
+            {
+                // Find recipes and sort them by the number of matching ingredients in descending order
+                var recipes = await _context.Recipes
+                                            .Select(r => new
+                                            {
+                                                Recipe = r,
+                                                MatchCount = r.RecipeIngredients.Count(ri => ingredientIds.Contains(ri.IngredientListId))
+                                            })
+                                            .Where(r => r.MatchCount > 0) // Filter out recipes with no matches
+                                            .OrderByDescending(r => r.MatchCount) // Order by match count
+                                            .ThenBy(r => r.Recipe.CreatedAt) // Secondary sort if desired
+                                            .Select(r => new RecipeDto
+                                            {
+                                                Id = r.Recipe.Id,
+                                                Name = r.Recipe.Name,
+                                                Description = r.Recipe.Description,
+                                                PreparationTime = r.Recipe.PreperationTime,
+                                                Media = r.Recipe.Media != null ? $"{baseUrl}{recipeMediaPath}{r.Recipe.Media}" : null,
+                                                AverageRating = r.Recipe.Reviews.Any() ? r.Recipe.Reviews.Average(review => review.Rating) : 0,
+                                                CreatedAt = r.Recipe.CreatedAt,
+                                            })
+                                            .ToListAsync();
+
+                // Wrap in a ResponseResult and return
+                return new ResponseResult<List<RecipeDto>>
+                {
+                    IsSuccess = recipes.Any(),
+                    Message = recipes.Any() ? "Recipes found." : "No recipes found.",
+                    Result = recipes
+                };
+            }
+            catch (Exception ex)
+            {
+                // If there's an exception, return an error response with the exception message
+                return new ResponseResult<List<RecipeDto>>
+                {
+                    IsSuccess = false,
+                    Message = $"Internal server error: {ex.Message}",
+                    Result = null
+                };
+            }
+        }
+
 
 
     }

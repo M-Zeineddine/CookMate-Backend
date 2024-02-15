@@ -84,9 +84,8 @@ namespace CookMateBackend.Controllers
                 {
                     // Check if the search term matches any tag names exactly, case-insensitive
                     var matchingTags = await _CookMateContext.TagsLists
-                        .Where(t => t.Name.ToLower() == searchString.ToLower())
-                        .ToListAsync();
-
+                    .Where(t => EF.Functions.Like(t.Name, searchString))
+                    .ToListAsync();
 
 
                     var matchingTagIds = matchingTags.Select(t => t.Id).ToList();

@@ -20,18 +20,44 @@ namespace CookMateBackend.Controllers
         }
 
         [HttpPost("Register")]
-        public IActionResult Register(RegisterModel model)
+        public ActionResult<ResponseResult<string>> Register(RegisterModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var response = new ResponseResult<string>();
 
-            var newUser = _authService.Register(model);
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    response.IsSuccess = false;
+                    response.Message = "Invalid model state";
+                    return new ActionResult<ResponseResult<string>>(response);
+                }
 
-            if (newUser == null)
-                return BadRequest("Username or email is already taken.");
+                var newUser = _authService.Register(model);
 
-            return Ok(newUser);  // or just return a success message or token
+                if (newUser == null)
+                {
+                    response.IsSuccess = false;
+                    response.Message = "Username or email is already taken.";
+                    return new ActionResult<ResponseResult<string>>(response);
+                }
+
+                // Assuming GenerateJwtToken creates a JWT token for the new user
+                var token = _authService.GenerateJwtToken(newUser);
+
+                response.IsSuccess = true;
+                response.Message = "Registration successful";
+                response.Result = token; // Send the JWT token as the result
+                return new ActionResult<ResponseResult<string>>(response);
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.Message = $"Internal server error: {ex.Message}";
+                return new ActionResult<ResponseResult<string>>(response);
+            }
         }
+
 
 
         [HttpPost("Login")]
@@ -63,6 +89,7 @@ namespace CookMateBackend.Controllers
                         var token = _authService.GenerateJwtToken(user);
 
                         response.IsSuccess = true;
+                        response.Message = "Logged in successfuly";
                         response.Result = token;
                         return new ActionResult<ResponseResult<string>>(response);
                     }

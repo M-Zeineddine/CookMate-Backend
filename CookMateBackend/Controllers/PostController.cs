@@ -1,4 +1,5 @@
-﻿using CookMateBackend.Data.Interfaces;
+﻿using Azure;
+using CookMateBackend.Data.Interfaces;
 using CookMateBackend.Data.Repositories;
 using CookMateBackend.Models;
 using CookMateBackend.Models.InputModels;
@@ -56,6 +57,7 @@ namespace CookMateBackend.Controllers
         public readonly CookMateContext _context;
         private readonly IPostRepository _postRepository;
         private readonly IWebHostEnvironment _environment;
+        public string baseUrl = "http://mz9436-001-site1.ctempurl.com/";
 
 
         public PostController(CookMateContext cookMateContext, IPostRepository postRepository, IWebHostEnvironment environment)
@@ -239,6 +241,82 @@ namespace CookMateBackend.Controllers
             return responseResult;
         }
 
+        [HttpGet]
+        [Route("searchAutofill")]
+        public async Task<ActionResult<ResponseResult<List<dynamic>>>> SearchAutofill([FromQuery] string searchString = "")
+        {
+            try
+            {
+                var tagsQuery = _context.TagsLists
+                    .Where(t => t.Name.Contains(searchString))
+                    .Take(3)
+                    .Select(t => new SearchResultItem
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        Type = 0,
+                        TagCategoryId = t.TagCategoryId
+                    });
+
+                var recipesQuery = _context.Recipes
+                    .Where(r => r.Name.Contains(searchString))
+                    .Take(3)
+                    .Select(r => new SearchResultItem
+                    {
+                        Id = r.Id,
+                        Name = r.Name,
+                        Type = 1,
+                        TagCategoryId = null // Explicitly nullable
+                    });
+
+                var usersQuery = _context.Users
+                    .Where(u => u.Username.Contains(searchString))
+                    .Take(3)
+                    .Select(u => new SearchResultItem
+                    {
+                        Id = u.Id,
+                        Name = u.Username,
+                        Type = 2,
+                        TagCategoryId = null // Explicitly nullable
+                    });
+
+
+                var combinedResults = await tagsQuery
+                    .Concat(recipesQuery)
+                    .Concat(usersQuery)
+                    .ToListAsync();
+
+                        // If no results, return a message indicating no matches were found
+                        if (!combinedResults.Any())
+                {
+                    return Ok(new ResponseResult<List<dynamic>>
+                    {
+                        IsSuccess = false,
+                        Message = "No matches found.",
+                        Result = new List<dynamic>()
+                    });
+                }
+
+                // If results are found, return them with a success message
+                return Ok(new ResponseResult<List<SearchResultItem>>
+                {
+                    IsSuccess = combinedResults.Any(),
+                    Message = combinedResults.Any() ? "Autofill search results retrieved successfully." : "No matches found.",
+                    Result = combinedResults
+                });
+            }
+            catch (Exception ex)
+            {
+                // If there's an exception, return an error response with the exception message
+                return StatusCode(500, new ResponseResult<List<dynamic>>
+                {
+                    IsSuccess = false,
+                    Message = $"Internal server error: {ex.Message}",
+                    Result = null
+                });
+            }
+        }
+
 
         [HttpPost]
         [Route("addRecipeTag")]
@@ -266,6 +344,112 @@ namespace CookMateBackend.Controllers
         }*/
 
 
+        [HttpGet]
+        [Route("generalSearch")]
+        public async Task<ActionResult<ResponseResult<dynamic>>> GeneralSearch([FromQuery] string searchString = "",
+                                                  [FromQuery] string sortBy = null,
+                                                  [FromQuery] int? postAt = null,
+                                                  [FromQuery] string prepTime = null,
+                                                  [FromQuery] int? rate = null,
+                                                  [FromQuery] List<int> tags = null,
+                                                  [FromQuery] int type = -1)
+        {
+            string recipeMediaPath = "uploads/recipes/";
+            var response = new ResponseResult<dynamic>();
+
+
+            try
+            {
+                //Recipe Query
+                var query = _context.Recipes.AsQueryable();
+
+                if (!string.IsNullOrEmpty(searchString))
+                {
+                    query = query.Where(r => r.Name.Contains(searchString));
+                }
+
+                if (!string.IsNullOrEmpty(prepTime))
+                {
+                    query = query.Where(r => string.Compare(r.PreperationTime, prepTime) <= 0);
+                }
+
+                if (rate.HasValue)
+                {
+                    query = query.Where(r => r.Reviews.Any() && r.Reviews.Average(review => review.Rating) >= rate.Value);
+                }
+
+                if (postAt.HasValue)
+                {
+                    var dateFrom = DateTime.Now.AddDays(-postAt.Value);
+                    query = query.Where(r => r.CreatedAt >= dateFrom);
+                }
+                if (tags != null && tags.Count > 0)
+                {
+                    query = query.Where(r => r.RecipeTags.Any(rt => tags.Contains(rt.TagListId)));
+                }
+
+                // Apply dynamic sorting
+                switch (sortBy)
+                {
+                    case "name":
+                        query = query.OrderBy(r => r.Name);
+                        break;
+                    case "prepTime":
+                        query = query.OrderBy(r => r.PreperationTime);
+                        break;
+                    case "rate":
+                        query = query.OrderByDescending(r => r.Reviews.Any() ? r.Reviews.Average(review => review.Rating) : 0);
+                        break;
+                    case "postAt":
+                        query = query.OrderByDescending(r => r.CreatedAt);
+                        break;
+                    case "createdAt": // This is the new case for sorting by CreatedAt
+                        query = query.OrderBy(r => r.CreatedAt);
+                        break;
+                        // Add more cases for other sort options as needed
+                }
+
+                var finalQuery = query.Select(recipe => new RecipeDto
+                {
+                    Id = recipe.Id,
+                    Name = recipe.Name,
+                    Description = recipe.Description,
+                    PreparationTime = recipe.PreperationTime,
+                    Media = !string.IsNullOrEmpty(recipe.Media) ? $"{baseUrl}{recipeMediaPath}{recipe.Media}" : null,
+                    AverageRating = recipe.Reviews.Any() ? recipe.Reviews.Average(r => r.Rating) : 0,
+                    CreatedAt = recipe.CreatedAt,
+                    User = new UserModel // Populate this according to your UserModel structure
+                    {
+                        // Assuming you have logic to populate this based on your recipe's user
+                    }
+                });
+
+                //Users Query
+                var recipeResults = await finalQuery.ToListAsync();
+
+                // Search for users with the same searchString without applying sorting and filtering
+                var userResults = await _context.Users
+                            .Where(u => string.IsNullOrEmpty(searchString) || u.Username.Contains(searchString) || u.Email.Contains(searchString))
+                            .Select(u => new UserModel
+                            {
+                                Id = u.Id,
+                                Username = u.Username,
+                                ProfilePic = u.ProfilePic // Assuming ProfilePic is directly mapped
+                            })
+                            .ToListAsync();
+
+                response.IsSuccess = true;
+                response.Message = "Search results fetched successfully.";
+                response.Result = new { Recipes = recipeResults, Users = userResults };
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.Message = $"An error occurred: {ex.Message}";
+                // Optionally include more detailed error information here
+            }
+            return Ok(response);
+        }
 
 
     }
