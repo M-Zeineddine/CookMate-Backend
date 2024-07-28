@@ -25,9 +25,16 @@ namespace CookMateBackend.Controllers
 
         [HttpGet]
         [Route("getComments")]
-        public async Task<ResponseResult<List<MediaCommentDto>>> GetComments(int mediaId)
+        public async Task<ResponseResult<List<MediaCommentDto>>> GetComments(int mediaId, int userId)
         {
-            return await _repository.GetCommentsByMediaIdAsync(mediaId);
+            return await _repository.GetCommentsByMediaIdAsync(mediaId, userId);
+        }
+
+        [HttpPost]
+        [Route("deletComment")]
+        public async Task<ResponseResult<bool>> DeletComment(DeleteCommentModel model)
+        {
+            return await _repository.DeleteCommentToMediaAsync(model);
         }
     }
 }

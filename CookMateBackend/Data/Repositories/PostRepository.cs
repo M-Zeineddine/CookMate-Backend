@@ -36,9 +36,11 @@ namespace CookMateBackend.Data.Repositories
 
                 // Include both Recipe and Media relationships in the query
                 var query = _CookMateContext.Posts
-                            .Include(p => p.Recipe)
-                            .Include(p => p.Media)
-                            .Where(p => p.UserId == userId);
+                    .Where(p => p.UserId == userId) // Exclude soft-deleted posts
+                    .Include(p => p.Recipe)
+                    .Where(p => p.Recipe == null || !p.Recipe.is_deleted) // Exclude posts with soft-deleted recipes
+                    .Include(p => p.Media)
+                    .Where(p => p.Media == null || !p.Media.is_deleted); // Exclude posts with soft-deleted media
 
                 var postsWithDetails = await query.ToListAsync();
 
@@ -46,7 +48,7 @@ namespace CookMateBackend.Data.Repositories
                 .Select(p => new
                 {
                     Post = p,
-                    RecipeAvgRating = p.Recipe != null ? _CookMateContext.Reviews.Where(r => r.RecipesId == p.Recipe.Id).Average(r => (decimal?)r.Rating) : null,
+                    RecipeAvgRating = p.Recipe != null ? _CookMateContext.Reviews.Where(r => r.RecipesId == p.Recipe.Id && !p.Recipe.is_deleted).Average(r => (decimal?)r.Rating) : null, // Consider soft-deletion of reviews if applicable
                     LatestDate = (p.Recipe != null && p.Media != null)
                                  ? (p.Recipe.CreatedAt > p.Media.CreatedAt ? p.Recipe.CreatedAt : p.Media.CreatedAt)
                                  : (p.Recipe?.CreatedAt ?? p.Media?.CreatedAt)
@@ -79,7 +81,7 @@ namespace CookMateBackend.Data.Repositories
                         RecipeReference = p.Post.Media.RecipeId.HasValue ? new RecipeReferenceDto
                         {
                             Id = p.Post.Media.RecipeId.Value,
-                            Name = allRecipes.FirstOrDefault(r => r.Id == p.Post.Media.RecipeId.Value)?.Name
+                            Name = _CookMateContext.Recipes.Where(r => r.Id == p.Post.Media.RecipeId.Value && !r.is_deleted).Select(r => r.Name).FirstOrDefault()
                         } : null
                     } : null
                 }).ToList();
@@ -218,6 +220,94 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
+        public async Task<ResponseResult<Post>> EditPost(EditPostModel model)
+        {
+            var result = new ResponseResult<Post>();
+
+            // Validate the input data
+            if (model.PostId == 0 || model.UserId == 0)
+            {
+                result.IsSuccess = false;
+                result.Message = "Missing input: " + (model.PostId == 0 ? "Post ID, " : "") + (model.UserId == 0 ? "User ID, " : "");
+                result.Message = result.Message.TrimEnd(' ', ',');
+                return result;
+            }
+
+            var post = await _CookMateContext.Posts
+                .Include(p => p.Recipe)
+                .Include(p => p.Media)
+                .FirstOrDefaultAsync(p => p.Id == model.PostId && p.UserId == model.UserId);
+
+            if (post == null)
+            {
+                result.IsSuccess = false;
+                result.Message = "Post not found or user mismatch.";
+                return result;
+            }
+
+            using (var transaction = await _CookMateContext.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    string uniqueFileName = null;
+                    if ((model.Type == 1 && model.RecipeMedia != null) || (model.Type == 2 && model.MediaData != null))
+                    {
+                        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                        IFormFile file = model.Type == 1 ? model.RecipeMedia : model.MediaData;
+                        string folderPath = model.Type == 1 ? Path.Combine(uploadsFolder, "recipes") : Path.Combine(uploadsFolder, "media");
+                        Directory.CreateDirectory(folderPath); // Ensure the directory exists
+
+                        uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName; // Unique file name
+                        string filePath = Path.Combine(folderPath, uniqueFileName); // Full path used for saving the file
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                    }
+
+                    // Conditional updates for recipe or media details
+                    if (model.Type == 1 && post.RecipeId.HasValue)
+                    {
+                        var recipe = await _CookMateContext.Recipes.FindAsync(post.RecipeId.Value);
+                        if (recipe != null)
+                        {
+                            if (!string.IsNullOrEmpty(model.RecipeName)) recipe.Name = model.RecipeName;
+                            if (!string.IsNullOrEmpty(model.RecipeDescription)) recipe.Description = model.RecipeDescription;
+                            if (model.PreparationTime.HasValue) recipe.PreperationTime = model.PreparationTime.Value.ToString();
+                            if (uniqueFileName != null) recipe.Media = uniqueFileName; // Update only if new file is uploaded
+                        }
+                    }
+                    else if (model.Type == 2 && post.MediaId.HasValue)
+                    {
+                        var media = await _CookMateContext.Media.FindAsync(post.MediaId.Value);
+                        if (media != null)
+                        {
+                            if (!string.IsNullOrEmpty(model.MediaTitle)) media.Title = model.MediaTitle;
+                            if (!string.IsNullOrEmpty(model.MediaDescription)) media.Description = model.MediaDescription;
+                            if (uniqueFileName != null) media.MediaData = uniqueFileName; // Update only if new file is uploaded
+                        }
+                    }
+
+                    await _CookMateContext.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    result.IsSuccess = true;
+                    result.Result = post; // return the updated post
+                    result.Message = "Post updated successfully.";
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    result.IsSuccess = false;
+                    result.Message = $"An error occurred: {ex.Message}";
+                }
+            }
+
+            return result;
+        }
+
+
+
         public async Task<RecipeDetailsModel> GetRecipeDetailsByIdAsync(int recipeId, int loggedInUserId)
         {
             // Define the base URL for media access based on your server's address
@@ -235,6 +325,7 @@ namespace CookMateBackend.Data.Repositories
                     Media = !string.IsNullOrEmpty(r.Media) ? $"{baseUrl}{recipeMediaPath}{r.Media}" : null,
                     IsCreatedByUser = r.Posts.Any(p => p.UserId == loggedInUserId && p.RecipeId == r.Id),
                     ViewCount = r.RecipeViews.Count(),
+
                     Procedures = r.Procedures.Select(p => new Procedure
                     {
                         Id = p.Id,
@@ -269,6 +360,14 @@ namespace CookMateBackend.Data.Repositories
                             // Map additional user properties as needed.
                         }).FirstOrDefault()
                 }).FirstOrDefaultAsync();
+
+            var recipeOwnerId = recipe.User.Id;
+            var isFollowing = await _CookMateContext.Followers
+                .AnyAsync(f => f.UserId == recipeOwnerId && f.FollowerId == loggedInUserId);
+            if (recipe != null)
+            {
+                recipe.IsFollowing = isFollowing;
+            }
 
             return recipe;
         }
@@ -433,7 +532,7 @@ namespace CookMateBackend.Data.Repositories
 
                 // Get the posts with type 1 from the followed users
                 var recipePosts = await _CookMateContext.Posts
-                    .Where(p => followedUserIds.Contains(p.UserId) && p.Type == 1 && p.Recipe != null)
+            .Where(p => followedUserIds.Contains(p.UserId) && p.Type == 1 && p.Recipe != null && !p.Recipe.is_deleted)
                     .Include(p => p.Recipe)
                     .ThenInclude(r => r.Reviews) // Include the Reviews for each Recipe
                     .Include(p => p.User)

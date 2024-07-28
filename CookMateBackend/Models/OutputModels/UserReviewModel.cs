@@ -7,5 +7,6 @@
         public string? Comment { get; set; }
         public DateTime CreatedAt { get; set; }
         public UserModel User { get; set; }
+        public bool IsForLoggedInUser { get; set; } // New property
     }
 }

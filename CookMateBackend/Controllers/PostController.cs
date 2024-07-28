@@ -186,6 +186,14 @@ namespace CookMateBackend.Controllers
             var result = await _postRepository.CreatePost(model);
             return result;
         }
+        
+        [HttpPost]
+        [Route("editPost")]
+        public async Task<ResponseResult<Post>> EditPost([FromForm] EditPostModel model)
+        {
+            var result = await _postRepository.EditPost(model);
+            return result;
+        }
 
 
         [HttpGet]
@@ -352,7 +360,9 @@ namespace CookMateBackend.Controllers
                                                   [FromQuery] string prepTime = null,
                                                   [FromQuery] int? rate = null,
                                                   [FromQuery] List<int> tags = null,
-                                                  [FromQuery] int type = -1)
+                                                  [FromQuery] int type = -1,
+                                                  [FromQuery] int userId = -1)
+
         {
             string recipeMediaPath = "uploads/recipes/";
             var response = new ResponseResult<dynamic>();
@@ -361,7 +371,7 @@ namespace CookMateBackend.Controllers
             try
             {
                 //Recipe Query
-                var query = _context.Recipes.AsQueryable();
+                var query = _context.Recipes.Where(r => !r.is_deleted).AsQueryable();
 
                 if (!string.IsNullOrEmpty(searchString))
                 {
@@ -429,14 +439,45 @@ namespace CookMateBackend.Controllers
 
                 // Search for users with the same searchString without applying sorting and filtering
                 var userResults = await _context.Users
-                            .Where(u => string.IsNullOrEmpty(searchString) || u.Username.Contains(searchString) || u.Email.Contains(searchString))
-                            .Select(u => new UserModel
-                            {
-                                Id = u.Id,
-                                Username = u.Username,
-                                ProfilePic = u.ProfilePic // Assuming ProfilePic is directly mapped
-                            })
-                            .ToListAsync();
+                    .Where(u => string.IsNullOrEmpty(searchString) || u.Username.Contains(searchString) || u.Email.Contains(searchString))
+                    .Select(u => new UserModel
+                    {
+                        Id = u.Id,
+                        Username = u.Username,
+                        ProfilePic = u.ProfilePic, // Assuming ProfilePic is directly mapped
+                        Email = u.Email,
+                        IsFollowing = _context.Followers.Any(f => f.UserId == u.Id && f.FollowerId == userId) // Include follow status
+                    })
+                    .ToListAsync();
+
+
+                // Save search term in search_history
+                if (!string.IsNullOrEmpty(searchString))
+                {
+                    var searchHistory = new SearchHistory
+                    {
+                        UserId = userId,
+                        SearchTerm = searchString,
+                        SearchedAt = DateTime.Now
+                    };
+                    _context.SearchHistories.Add(searchHistory);
+                    await _context.SaveChangesAsync();
+                }
+
+                if (!string.IsNullOrEmpty(searchString))
+                {
+                    var matchingTagsFromSearch = await _context.TagsLists
+                        .Where(t => t.Name.Contains(searchString))
+                        .ToListAsync();
+
+                    await SaveUserPreferenceTagsAsync(matchingTagsFromSearch.Select(t => t.Id).ToList(), userId);
+                }
+
+                // Save the tags that are passed by their ID in the tags list
+                if (tags != null && tags.Count > 0)
+                {
+                    await SaveUserPreferenceTagsAsync(tags, userId);
+                }
 
                 response.IsSuccess = true;
                 response.Message = "Search results fetched successfully.";
@@ -449,6 +490,33 @@ namespace CookMateBackend.Controllers
                 // Optionally include more detailed error information here
             }
             return Ok(response);
+        }
+
+        private async Task SaveUserPreferenceTagsAsync(List<int> tagIds, int userId)
+        {
+            if (userId > 0)
+            {
+                var existingUser = await _context.Users.AnyAsync(u => u.Id == userId);
+                if (existingUser)
+                {
+                    foreach (var tagId in tagIds)
+                    {
+                        var preferenceExists = await _context.UserPreferencesTags
+                            .AnyAsync(p => p.TagId == tagId && p.UserId == userId);
+
+                        if (!preferenceExists)
+                        {
+                            var userPreferenceTag = new UserPreferencesTag
+                            {
+                                UserId = userId,
+                                TagId = tagId
+                            };
+                            _context.UserPreferencesTags.Add(userPreferenceTag);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
 
 

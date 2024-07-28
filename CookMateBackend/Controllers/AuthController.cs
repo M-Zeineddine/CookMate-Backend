@@ -1,5 +1,6 @@
 ﻿using CookMateBackend.Data.Interfaces;
 using CookMateBackend.Data.Repositories;
+using CookMateBackend.Models;
 using CookMateBackend.Models.InputModels;
 using CookMateBackend.Models.ResponseResults;
 using CookMateBackend.Services;
@@ -33,7 +34,29 @@ namespace CookMateBackend.Controllers
                     return new ActionResult<ResponseResult<string>>(response);
                 }
 
-                var newUser = _authService.Register(model);
+                // Handle the profile picture upload
+                string profilePicFilename = null;
+                if (model.ProfilePic != null)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads/profilepics");
+                    // Ensure the uploads directory exists
+                    Directory.CreateDirectory(uploadsFolder);
+
+                    // Generate a unique filename to avoid file name conflicts
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + model.ProfilePic.FileName;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        model.ProfilePic.CopyTo(fileStream);
+                    }
+
+                    // Save the path or filename to the user's profile
+                    profilePicFilename = uniqueFileName;
+                }
+
+                // Now, pass the filename to the Register method or adjust your User model accordingly
+                var newUser = _authService.Register(model, profilePicFilename);
 
                 if (newUser == null)
                 {
@@ -109,6 +132,24 @@ namespace CookMateBackend.Controllers
                 response.Message = $"Internal server error: {ex.Message}";
                 return new ActionResult<ResponseResult<string>>(response);
             }
+        }
+
+
+        [HttpPost("ChangePassword")]
+        public IActionResult ChangePassword([FromBody] ChangePasswordModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = _authService.ChangePassword(model);
+            if (!result)
+            {
+                return BadRequest("Current password is incorrect or user does not exist.");
+            }
+
+            return Ok(new { message = "Password updated successfully." });
         }
 
 

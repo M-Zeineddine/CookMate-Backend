@@ -49,7 +49,7 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
-        public async Task<ResponseResult<List<MediaCommentDto>>> GetCommentsByMediaIdAsync(int mediaId)
+        public async Task<ResponseResult<List<MediaCommentDto>>> GetCommentsByMediaIdAsync(int mediaId, int loggedInUserId)
         {
             var result = new ResponseResult<List<MediaCommentDto>>();
             try
@@ -68,7 +68,8 @@ namespace CookMateBackend.Data.Repositories
                             Id = c.User.Id,
                             Username = c.User.Username,
                             ProfilePic = c.User.ProfilePic
-                        }
+                        },
+                        IsForLoggedInUser = c.User.Id == loggedInUserId // Set based on the logged-in user's ID
                     })
                     .ToListAsync();
 
@@ -81,9 +82,43 @@ namespace CookMateBackend.Data.Repositories
                 result.IsSuccess = false;
                 result.Message = "An error occurred while retrieving comments.";
                 result.Result = null;
-                // Again, in a real-world scenario, you might want to log this exception
+                // Log the exception
             }
             return result;
         }
+
+
+        public async Task<ResponseResult<bool>> DeleteCommentToMediaAsync(DeleteCommentModel model)
+        {
+            var result = new ResponseResult<bool>();
+            try
+            {
+                var comment = await _context.MediaComments.FindAsync(model.commentId);
+
+                if (comment == null)
+                {
+                    result.IsSuccess = false;
+                    result.Result = false;
+                    result.Message = "Comment not found.";
+                    return result;
+                }
+
+                _context.MediaComments.Remove(comment);
+                await _context.SaveChangesAsync();
+
+                result.IsSuccess = true;
+                result.Result = true;
+                result.Message = "Comment deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.Result = false;
+                result.Message = "An error occurred while deleting the comment: " + ex.Message;
+            }
+
+            return result;
+        }
+
     }
 }

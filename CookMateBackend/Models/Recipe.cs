@@ -16,6 +16,8 @@ public partial class Recipe
     public string? Media { get; set; }
 
     public DateTime CreatedAt { get; set; }
+    public bool is_deleted { get; set; }
+    public bool is_draft { get; set; }
 
     public virtual ICollection<Media> MediaNavigation { get; set; } = new List<Media>();
 

@@ -52,7 +52,7 @@ namespace CookMateBackend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }*/
 
-        public User? Register(RegisterModel model)
+        public User? Register(RegisterModel model, string profilePicFilename)
         {
             // Check if the username or email already exists
             if (_CookMateContext.Users.Any(u => u.Username == model.Username || u.Email == model.Email))
@@ -67,7 +67,7 @@ namespace CookMateBackend.Services
                 Email = model.Email,
                 Password = BC.HashPassword(model.Password),
                 Role = 2,
-                ProfilePic = model.ProfilePic,
+                ProfilePic = profilePicFilename, // Use the uploaded file's path or filename
                 Bio = null
             };
 
@@ -130,6 +130,18 @@ namespace CookMateBackend.Services
         public User GetUserByUsername(string username)
         {
             return _CookMateContext.Users.FirstOrDefault(c => c.Username == username);
+        }
+
+        public bool ChangePassword(ChangePasswordModel model)
+        {
+            var user = _CookMateContext.Users.FirstOrDefault(u => u.Id == model.UserId);
+            
+
+            // Update the password
+            user.Password = BC.HashPassword(model.NewPassword);
+            _CookMateContext.SaveChanges();
+
+            return true;
         }
     }
 }

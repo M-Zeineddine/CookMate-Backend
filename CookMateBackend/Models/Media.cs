@@ -14,7 +14,7 @@ public partial class Media
     public string? MediaData { get; set; }
 
     public DateTime CreatedAt { get; set; }
-
+    public bool is_deleted { get; set; }
     public int Likes { get; set; }
 
     public int? RecipeId { get; set; }

@@ -9,11 +9,11 @@
         public string? Media { get; set; }
         public bool IsCreatedByUser { get; set; } // New property
         public int ViewCount { get; set; }
+        public bool IsFollowing { get; set; } // New property indicating if the logged-in user is following the recipe owner
         public UserModel? User { get; set; }
         public List<Procedure>? Procedures { get; set; }
         public List<IngredientDto>? Ingredients { get; set; }
         public List<TagDto>? Tags { get; set; }
-
 
     }
 

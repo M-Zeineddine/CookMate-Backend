@@ -11,6 +11,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -47,7 +48,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:4200",  
-            "http://localhost:60476"
+            "http://localhost:60476",
+            "http://localhost:7134"
         )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -73,6 +75,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     // Disables automatic 400 response
     options.SuppressModelStateInvalidFilter = true;
 });
+
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+
 
 //JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Key"]);

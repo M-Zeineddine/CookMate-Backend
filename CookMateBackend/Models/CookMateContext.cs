@@ -77,7 +77,7 @@ public partial class CookMateContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=SQL8006.site4now.net;Initial Catalog=db_aa4016_mzhost;User Id=db_aa4016_mzhost_admin;Password=P@ssw0rd");
+        => optionsBuilder.UseSqlServer("Data Source=.\\SQL2022; DATABASE=CookMate; Initial Catalog=CookMate;user id=sa;password=P@ssw0rd; TrustServerCertificate=True");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -201,6 +201,7 @@ public partial class CookMateContext : DbContext
             entity.HasOne(d => d.Recipe).WithMany(p => p.MediaNavigation)
                 .HasForeignKey(d => d.RecipeId)
                 .HasConstraintName("FK_media_recipe_id");
+            entity.Property(e => e.is_deleted).HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<Post>(entity =>
@@ -279,6 +280,8 @@ public partial class CookMateContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.PreperationTime).HasColumnName("preperation_time");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.is_deleted).HasColumnName("is_deleted");
+            entity.Property(e => e.is_draft).HasColumnName("is_draft");
         });
 
         modelBuilder.Entity<RecipeDislike>(entity =>

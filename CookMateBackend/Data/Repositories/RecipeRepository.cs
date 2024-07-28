@@ -1,4 +1,5 @@
-﻿using CookMateBackend.Data.Interfaces;
+﻿using AutoMapper;
+using CookMateBackend.Data.Interfaces;
 using CookMateBackend.Models;
 using CookMateBackend.Models.InputModels;
 using CookMateBackend.Models.OutputModels;
@@ -11,10 +12,12 @@ namespace CookMateBackend.Data.Repositories
     public class RecipeRepository: IRecipeRepository
     {
         public readonly CookMateContext _context;
+        private readonly IMapper _mapper;
 
-        public RecipeRepository(CookMateContext cookMateContext)
+        public RecipeRepository(CookMateContext cookMateContext, IMapper mapper)
         {
             _context = cookMateContext;
+            _mapper = mapper;
         }
         public string baseUrl = "http://mz9436-001-site1.ctempurl.com/";
 
@@ -56,7 +59,7 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
-        public async Task<ResponseResult<ReviewAggregateModel>> GetReviewsForRecipeAsync(int recipeId, int pageNumber, int pageSize)
+        public async Task<ResponseResult<ReviewAggregateModel>> GetReviewsForRecipeAsync(int recipeId, int pageNumber, int pageSize, int loggedInUserId)
         {
             var result = new ResponseResult<ReviewAggregateModel>();
 
@@ -83,7 +86,8 @@ namespace CookMateBackend.Data.Repositories
                             Id = r.User.Id,
                             Username = r.User.Username,
                             ProfilePic = r.User.ProfilePic // Assuming ProfilePic is the correct field for the user's profile picture
-                        }
+                        },
+                        IsForLoggedInUser = r.User.Id == loggedInUserId // Set based on the logged-in user's ID
                     })
                     .ToListAsync();
 
@@ -111,30 +115,42 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
-        public async Task<ResponseResult<bool>> RemoveReviewAsync(int reviewId, int userId)
+        public async Task<ResponseResult<bool>> DeleteReviewAsync(DeleteReviewModel model)
         {
             var result = new ResponseResult<bool>();
 
-            var review = await _context.Reviews
-                .FirstOrDefaultAsync(r => r.Id == reviewId && r.UserId == userId);
+            try
+            {
+                // Find the review by ID and ensure it belongs to the user
+                var review = await _context.Reviews
+                    .FirstOrDefaultAsync(r => r.Id == model.reviewId && r.UserId == model.userId);
 
-            if (review == null)
+                if (review == null)
+                {
+                    result.IsSuccess = false;
+                    result.Result = false;
+                    result.Message = "Review not found or does not belong to user.";
+                    return result;
+                }
+
+                // Remove the review from the database
+                _context.Reviews.Remove(review);
+                await _context.SaveChangesAsync();
+
+                result.IsSuccess = true;
+                result.Result = true;
+                result.Message = "Review deleted successfully.";
+            }
+            catch (Exception ex)
             {
                 result.IsSuccess = false;
-                result.Message = "Review not found or you do not have permission to delete this review.";
                 result.Result = false;
-                return result;
+                result.Message = $"An error occurred while deleting the review: {ex.Message}";
             }
-
-            _context.Reviews.Remove(review);
-            await _context.SaveChangesAsync();
-
-            result.IsSuccess = true;
-            result.Message = "Review removed successfully.";
-            result.Result = true;
 
             return result;
         }
+
 
 
         public async Task<ResponseResult<bool>> AddRecipeViewAsync(CreateRecipeViewModel viewModel)
@@ -194,6 +210,54 @@ namespace CookMateBackend.Data.Repositories
         }
 
 
+/*        public IEnumerable<RecipeDto> GetUserGeneratedContent(int userId)
+        {
+            // Get the IDs of recipes the user has interacted with (either liked or viewed)
+            var likedRecipeIds = _context.RecipeLikes
+                .Where(rl => rl.InteractionHistory.UserId == userId)
+                .Select(rl => rl.RecipeId)
+                .Distinct();
+
+            var viewedRecipeIds = _context.RecipeViews
+                .Where(rv => rv.InteractionHistory.UserId == userId)
+                .Select(rv => rv.RecipeId)
+                .Distinct();
+
+            var recipeIds = likedRecipeIds.Union(viewedRecipeIds).ToList();
+
+            // Retrieve the actual recipes from the Recipe table
+            var recipes = _context.Recipes
+                .Where(r => recipeIds.Contains(r.RecipeId))
+                .ToList();
+
+            // You might want to calculate some sort of score or ranking based on likes and views
+            var recipeDtos = recipes.Select(recipe => new RecipeDto
+            {
+                RecipeId = recipe.RecipeId,
+                Title = recipe.Title,
+                // Other properties mapped accordingly
+                // You can calculate a 'score' or 'rank' based on the number of likes/views here if you wish
+                Score = CalculateRecipeScore(recipe.RecipeId, likedRecipeIds, viewedRecipeIds)
+            });
+
+            // Sort the recipes based on the score or any other criteria
+            var sortedRecipes = recipeDtos.OrderByDescending(r => r.Score);
+
+            return sortedRecipes;
+        }*/
+
+        private int CalculateRecipeScore(int recipeId, IEnumerable<int> likedRecipeIds, IEnumerable<int> viewedRecipeIds)
+        {
+            const int likeWeight = 10; // weight of a like in scoring
+            const int viewWeight = 1;  // weight of a view in scoring
+
+            int likesScore = likedRecipeIds.Count(id => id == recipeId) * likeWeight;
+            int viewsScore = viewedRecipeIds.Count(id => id == recipeId) * viewWeight;
+
+            return likesScore + viewsScore;
+        }
+
+
         public async Task<ResponseResult<List<RecipeDto>>> GetTopRatedRecipesAsync(int count)
         {
             string recipeMediaPath = "uploads/recipes/";
@@ -202,7 +266,7 @@ namespace CookMateBackend.Data.Repositories
             try
             {
                 var topRatedRecipes = await _context.Recipes
-                    .Where(r => r.Reviews.Any())  // Ensure that the recipe has at least one review
+                    .Where(r => !r.is_deleted && r.Reviews.Any())  // Exclude soft-deleted recipes and ensure at least one review
                     .Select(r => new
                     {
                         Recipe = r,
@@ -245,7 +309,7 @@ namespace CookMateBackend.Data.Repositories
             try
             {
                 var topFavoritedRecipes = await _context.Posts
-                    .Where(p => p.Type == 1) // Filter for posts that are recipes
+                    .Where(p => p.Type == 1 && !p.Recipe.is_deleted) // Filter for posts that are recipes
                     .GroupJoin(_context.Favorites, // Join with favorites
                         post => post.Id,
                         favorite => favorite.PostId,
@@ -344,6 +408,7 @@ namespace CookMateBackend.Data.Repositories
             {
                 // Find recipes and sort them by the number of matching ingredients in descending order
                 var recipes = await _context.Recipes
+                                            .Where(r => !r.is_deleted) // Exclude soft-deleted recipes
                                             .Select(r => new
                                             {
                                                 Recipe = r,
@@ -384,6 +449,25 @@ namespace CookMateBackend.Data.Repositories
             }
         }
 
+
+        public async Task<ResponseResult<bool>> SoftDeleteRecipeAsync(int recipeId)
+        {
+            var response = new ResponseResult<bool> { IsSuccess = false };
+            var recipe = await _context.Recipes.FindAsync(recipeId);
+            if (recipe == null)
+            {
+                response.Message = "Recipe not found.";
+                return response;
+            }
+
+            recipe.is_deleted = true;
+            await _context.SaveChangesAsync();
+
+            response.IsSuccess = true;
+            response.Message = "Recipe deleted successfully.";
+            response.Result = true;
+            return response;
+        }
 
 
     }

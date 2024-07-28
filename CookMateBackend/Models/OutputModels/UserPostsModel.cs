@@ -16,6 +16,7 @@
         public string? PreparationTime { get; set; }
         public string? Media { get; set; }
         public decimal AverageRating { get; set; } // Property to hold the average rating
+        public decimal Score { get; set; } // Property to hold the average rating
 
         public DateTime? CreatedAt { get; set; }
         public UserModel? User { get; set; }

@@ -136,11 +136,11 @@ namespace CookMateBackend.Data.Repositories
                 {
                     if (favoriteType.Equals("media", StringComparison.OrdinalIgnoreCase))
                     {
-                        favoritesQuery = favoritesQuery.Where(f => f.Post.Type == 2);
+                        favoritesQuery = favoritesQuery.Where(f => f.Post.Type == 2 && !f.Post.Media.is_deleted);
                     }
                     else if (favoriteType.Equals("recipe", StringComparison.OrdinalIgnoreCase))
                     {
-                        favoritesQuery = favoritesQuery.Where(f => f.Post.Type == 1);
+                        favoritesQuery = favoritesQuery.Where(f => f.Post.Type == 1 && !f.Post.Recipe.is_deleted);
                     }
                     else
                     {
@@ -161,7 +161,7 @@ namespace CookMateBackend.Data.Repositories
                             MediaData = f.Post.Media.MediaData != null ? $"{baseUrl}{generalMediaPath}{f.Post.Media.MediaData}" : null,
                             Likes = f.Post.Media.Likes,
                             CreatedAt = f.Post.Media.CreatedAt,
-                            RecipeReference = f.Post.Media.RecipeId.HasValue ? new RecipeReferenceDto
+                            RecipeReference = f.Post.Media.RecipeId.HasValue && !f.Post.Media.Recipe.is_deleted ? new RecipeReferenceDto
                             {
                                 Id = f.Post.Media.RecipeId,
                                 Name = f.Post.Media.Recipe.Name

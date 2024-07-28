@@ -6,7 +6,8 @@ namespace CookMateBackend.Data.Interfaces
     public interface IMediaRepository
     {
         Task<ResponseResult<bool>> AddCommentToMediaAsync(CreateMediaCommentDto createCommentDto);
-        Task<ResponseResult<List<MediaCommentDto>>> GetCommentsByMediaIdAsync(int mediaId);
+        Task<ResponseResult<List<MediaCommentDto>>> GetCommentsByMediaIdAsync(int mediaId, int userId);
+        Task<ResponseResult<bool>> DeleteCommentToMediaAsync(DeleteCommentModel model);
     }
 
 }

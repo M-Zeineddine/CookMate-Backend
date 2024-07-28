@@ -9,6 +9,8 @@ namespace CookMateBackend.Models.InputModels
         public DateTime CreatedAt { get; set; }
         public int TotalComments { get; set; }
         public UserModel User { get; set; }
+        public bool IsForLoggedInUser { get; set; } // New property
     }
+
 
 }
